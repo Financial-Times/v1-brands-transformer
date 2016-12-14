@@ -24,11 +24,11 @@ import (
 const (
 	testUUID              = "bba39990-c78d-3629-ae83-808c333c6dbc"
 	testUUID2             = "be2e7e2b-0fa2-3969-a69b-74c46e754032"
-	getBrandResponse      = "{\"uuid\":\"bba39990-c78d-3629-ae83-808c333c6dbc\",\"parentUUID\":\"\",\"prefLabel\":\"\",\"type\":\"\",\"alternativeIdentifiers\":{}}\n{\"uuid\":\"be2e7e2b-0fa2-3969-a69b-74c46e754032\",\"parentUUID\":\"\",\"prefLabel\":\"\",\"type\":\"\",\"alternativeIdentifiers\":{}}\n"
+	getBrandResponse      = "{\"uuid\":\"bba39990-c78d-3629-ae83-808c333c6dbc\",\"alternativeIdentifiers\":{}}\n{\"uuid\":\"be2e7e2b-0fa2-3969-a69b-74c46e754032\",\"alternativeIdentifiers\":{}}\n"
 	getBrandUUIDsResponse = `{"ID":"bba39990-c78d-3629-ae83-808c333c6dbc"}
 {"ID":"be2e7e2b-0fa2-3969-a69b-74c46e754032"}
 `
-	getBrandByUUIDResponse = "{\"uuid\":\"bba39990-c78d-3629-ae83-808c333c6dbc\",\"parentUUID\":\"\",\"prefLabel\":\"Financial Times\",\"type\":\"Brand\",\"alternativeIdentifiers\":{\"TME\":[\"RlQK-QnJhbmRzCg==\"],\"uuids\":[\"bba39990-c78d-3629-ae83-808c333c6dbc\"]}}\n"
+	getBrandByUUIDResponse = "{\"uuid\":\"bba39990-c78d-3629-ae83-808c333c6dbc\",\"prefLabel\":\"Financial Times\",\"type\":\"Brand\",\"alternativeIdentifiers\":{\"TME\":[\"RlQK-QnJhbmRzCg==\"],\"uuids\":[\"bba39990-c78d-3629-ae83-808c333c6dbc\"]}}\n"
 )
 
 func TestHandlers(t *testing.T) {

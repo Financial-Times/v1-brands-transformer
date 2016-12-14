@@ -13,9 +13,9 @@ type berthaBrand struct {
 
 type brand struct {
 	UUID                   string                 `json:"uuid"`
-	ParentUUID             string                 `json:"parentUUID"`
-	PrefLabel              string                 `json:"prefLabel"`
-	Type                   string                 `json:"type"`
+	ParentUUID             string                 `json:"parentUUID,omitempty"`
+	PrefLabel              string                 `json:"prefLabel,omitempty"`
+	Type                   string                 `json:"type,omitempty"`
 	AlternativeIdentifiers alternativeIdentifiers `json:"alternativeIdentifiers,omitempty"`
 	Aliases                []string               `json:"aliases,omitempty"`
 	Strapline              string                 `json:"strapline,omitempty"`
