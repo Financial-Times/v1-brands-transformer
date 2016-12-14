@@ -97,7 +97,7 @@ func main() {
 		EnvVar: "LOG_METRICS",
 	})
 	berthaSrcURL := app.String(cli.StringOpt{
-		Name:   "berthaSourceURL",
+		Name:   "bertha-source-url",
 		Desc:   "The URL of the Bertha Brands JSON source",
 		EnvVar: "BERTHA_SOURCE_URL",
 	})
@@ -118,7 +118,7 @@ func main() {
 				*maxRecords,
 				*batchSize,
 				tmeTaxonomyName,
-				&tmereader.BrandityFiles{},
+				&tmereader.AuthorityFiles{},
 				modelTransformer),
 			*baseURL,
 			tmeTaxonomyName,

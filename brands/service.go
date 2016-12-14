@@ -363,19 +363,23 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 		}
 
 		for _, b := range bBrands {
-			berthaUUID := uuid.NewMD5(uuid.UUID{}, []byte(b.TmeIdentifier)).String()
-			cachedBrand := bucket.Get([]byte(berthaUUID))
+			berthaGeneratedUUID := uuid.NewMD5(uuid.UUID{}, []byte(b.TmeIdentifier)).String()
+			cachedBrand := bucket.Get([]byte(berthaGeneratedUUID))
 			var a brand
-			if cachedBrand == nil {
-				log.Warnf("Curated brand %s [%s] was not found in cache.  Adding without V1 information.", b.Name, berthaUUID)
+			if b.TmeIdentifier == "" {
+				// We've put this check in because editorial sometimes forget the TME Identifier, which breaks things.
+				log.Warnf("No TME Identifier, ignoring curated brand %s [%s]", b.PrefLabel, b.UUID)
+				continue
+			} else if cachedBrand == nil {
+				log.Warnf("Curated brand [%s] was not found in cache.  Adding without V1 information.", berthaGeneratedUUID)
 				a, _ = berthaToBrand(b)
 			} else {
 				json.Unmarshal(cachedBrand, &a)
 				a, _ = addBerthaInformation(a, b)
+				bucket.Delete([]byte(berthaGeneratedUUID))
 			}
-
 			newCachedVersion, _ := json.Marshal(a)
-			err := bucket.Put([]byte(berthaUUID), newCachedVersion)
+			err := bucket.Put([]byte(a.UUID), newCachedVersion)
 			if err != nil {
 				return err
 			}
@@ -388,50 +392,42 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 }
 
 func addBerthaInformation(a brand, b berthaBrand) (brand, error) {
-	berthaUUID := uuid.NewMD5(uuid.UUID{}, []byte(b.TmeIdentifier)).String()
-	if berthaUUID != a.UUID {
-		return a, errors.New("Bertha UUID doesn't match brand UUID")
-	}
-	plainDescription, err := html2text.FromString(b.Biography)
+	plainDescription, err := html2text.FromString(b.DescriptionXML)
 	if err != nil {
 		return a, err
 	}
-	a.Name = b.Name
-	a.PrefLabel = b.Name
-	a.EmailAddress = b.Email
-	a.TwitterHandle = b.TwitterHandle
-	a.FacebookProfile = b.FacebookProfile
-	a.LinkedinProfile = b.LinkedinProfile
+	a.UUID = b.UUID
+	a.PrefLabel = b.PrefLabel
+	a.Strapline = b.Strapline
+	a.ParentUUID = b.ParentUUID
 	a.Description = plainDescription
-	a.DescriptionXML = b.Biography
+	a.DescriptionXML = b.DescriptionXML
 	a.ImageURL = b.ImageURL
+	a.Type = "Brand"
 
 	return a, nil
 }
 
 func berthaToBrand(a berthaBrand) (brand, error) {
-	uuid := uuid.NewMD5(uuid.UUID{}, []byte(a.TmeIdentifier)).String()
-	plainDescription, err := html2text.FromString(a.Biography)
+	plainDescription, err := html2text.FromString(a.DescriptionXML)
 
 	if err != nil {
 		return brand{}, err
 	}
 
 	altIds := alternativeIdentifiers{
-		UUIDs: []string{uuid},
+		UUIDs: []string{a.UUID},
 		TME:   []string{a.TmeIdentifier},
 	}
 
 	p := brand{
-		UUID:                   uuid,
-		Name:                   a.Name,
-		PrefLabel:              a.Name,
-		EmailAddress:           a.Email,
-		TwitterHandle:          a.TwitterHandle,
-		FacebookProfile:        a.FacebookProfile,
-		LinkedinProfile:        a.LinkedinProfile,
+		UUID:                   a.UUID,
+		ParentUUID:             a.ParentUUID,
+		PrefLabel:              a.PrefLabel,
+		Type:                   "Brand",
+		Strapline:              a.Strapline,
 		Description:            plainDescription,
-		DescriptionXML:         a.Biography,
+		DescriptionXML:         a.DescriptionXML,
 		ImageURL:               a.ImageURL,
 		AlternativeIdentifiers: altIds,
 	}

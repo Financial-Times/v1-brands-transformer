@@ -46,7 +46,7 @@ func transformBrand(tmeTerm term, taxonomyName string) brand {
 			TME:   []string{tmeIdentifier},
 			UUIDs: []string{brandUUID},
 		},
-		Type:    "Person",
+		Type:    "Brand",
 		Aliases: aliasList,
 	}
 }
