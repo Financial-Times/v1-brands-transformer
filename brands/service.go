@@ -13,7 +13,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
 	"github.com/jaytaylor/html2text"
-	"github.com/pborman/uuid"
 )
 
 const (
@@ -363,20 +362,20 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 		}
 
 		for _, b := range bBrands {
-			berthaGeneratedUUID := uuid.NewMD5(uuid.UUID{}, []byte(b.TmeIdentifier)).String()
-			cachedBrand := bucket.Get([]byte(berthaGeneratedUUID))
+			cachedBrand := bucket.Get([]byte(b.UUID))
 			var a brand
-			if b.TmeIdentifier == "" {
-				// We've put this check in because editorial sometimes forget the TME Identifier, which breaks things.
+			if b.TmeIdentifier == "" && b.UUID != "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54" {
+				// We've put this check in because editorial sometimes forget the TME Identifier.
+				// The UUID is for the FT, which is a special case (no TME Identifier but we still want it)
 				log.Warnf("No TME Identifier, ignoring curated brand %s [%s]", b.PrefLabel, b.UUID)
 				continue
 			} else if cachedBrand == nil {
-				log.Warnf("Curated brand [%s] was not found in cache.  Adding without V1 information.", berthaGeneratedUUID)
+				log.Warnf("Curated brand %s [%s] was not found in cache.  Adding without V1 information.", b.PrefLabel, b.UUID)
 				a, _ = berthaToBrand(b)
 			} else {
 				json.Unmarshal(cachedBrand, &a)
 				a, _ = addBerthaInformation(a, b)
-				bucket.Delete([]byte(berthaGeneratedUUID))
+				bucket.Delete([]byte(b.UUID))
 			}
 			newCachedVersion, _ := json.Marshal(a)
 			err := bucket.Put([]byte(a.UUID), newCachedVersion)

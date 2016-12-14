@@ -72,3 +72,13 @@ Good to Go: [http://localhost:8080/__gtg](http://localhost:8080/__gtg)
 
 ### API Document  
 [V1 Brands Transformer API Endpoints](https://docs.google.com/document/d/1-Eyhs98a3J1zw5OHfFZ0uXzyFCywBKnvC3RmrBc29cU)
+
+### A Note on UUID Mapping
+[Link to the UUID map](https://github.com/Financial-Times/v1-brands-transformer/blob/master/brands/randomUUIDmap.go#L11)
+
+This map is a static map of TME identifiers to the randomly generated UUIDs that were created by editorial 
+as part of the Bertha spreadsheet.  Since they don't follow the normal manner of generating a UUID in UP, 
+we need to store them as a map TME -> UUID.
+
+This shouldn't require changing as new brands added to the spreadsheet have their UUIDs generated correctly 
+from their TME identifier.
