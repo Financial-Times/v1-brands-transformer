@@ -250,7 +250,24 @@ func (s *brandServiceImpl) openDB() error {
 
 func (s *brandServiceImpl) reloadDB() error {
 	s.setDataLoaded(false)
-	return s.loadDB()
+
+	err := s.loadDB()
+	if err != nil {
+		log.Errorf("Error while creating BrandService: [%v]", err.Error())
+	}
+	var bBrands []berthaBrand
+
+	bBrands, err = getBerthaBrands(s.berthaURL)
+	if err != nil {
+		log.Errorf("Error on Bertha load: [%v]", err.Error())
+	} else {
+		err = s.loadCuratedBrands(bBrands)
+		if err != nil {
+			log.Errorf("Error while loading in the curated brands: [%v]", err.Error())
+		}
+	}
+
+	return nil
 }
 
 func (s *brandServiceImpl) loadDB() error {
@@ -375,6 +392,7 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 			} else {
 				json.Unmarshal(cachedBrand, &a)
 				a, _ = addBerthaInformation(a, b)
+
 				bucket.Delete([]byte(b.UUID))
 			}
 			newCachedVersion, _ := json.Marshal(a)
