@@ -71,7 +71,7 @@ Build-info: [http://localhost:8080/build-info](http://localhost:8080/build-info)
 Good to Go: [http://localhost:8080/__gtg](http://localhost:8080/__gtg) 
 
 ### API Document  
-[V1 Brands Transformer API Endpoints](https://docs.google.com/document/d/1-Eyhs98a3J1zw5OHfFZ0uXzyFCywBKnvC3RmrBc29cU)
+[V1 Brands Transformer API Endpoints](https://docs.google.com/document/d/1qAKbd8n4lWZBoY6lzIya3w08gLvcaSPj7VeRpSkfkpE)
 
 ### A Note on UUID Mapping
 [Link to the UUID map](https://github.com/Financial-Times/v1-brands-transformer/blob/master/brands/randomUUIDmap.go#L11)
