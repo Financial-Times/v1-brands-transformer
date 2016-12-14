@@ -1,29 +1,24 @@
 package brands
 
 type berthaBrand struct {
-	Name            string `json:"name"`
-	Email           string `json:"email"`
-	ImageURL        string `json:"imageurl"`
-	Biography       string `json:"biography"`
-	TwitterHandle   string `json:"twitterhandle"`
-	FacebookProfile string `json:"facebookprofile"`
-	LinkedinProfile string `json:"linkedinprofile"`
-	TmeIdentifier   string `json:"tmeidentifier"`
+	Active         bool   `json:"active"`
+	PrefLabel      string `json:"prefLabel"`
+	Strapline      string `json:"strapline"`
+	ImageURL       string `json:"imageurl"`
+	DescriptionXML string `json:"descriptionxml"`
+	UUID           string `json:"uuid"`
+	ParentUUID     string `json:"parentuuid"`
+	TmeIdentifier  string `json:"tmeidentifier"`
 }
 
 type brand struct {
 	UUID                   string                 `json:"uuid"`
+	ParentUUID             string                 `json:"parentUUID"`
 	PrefLabel              string                 `json:"prefLabel"`
 	Type                   string                 `json:"type"`
 	AlternativeIdentifiers alternativeIdentifiers `json:"alternativeIdentifiers,omitempty"`
 	Aliases                []string               `json:"aliases,omitempty"`
-	BirthYear              int                    `json:"birthYear,omitempty"`
-	Name                   string                 `json:"name,omitempty"`
-	Salutation             string                 `json:"salutation,omitempty"`
-	EmailAddress           string                 `json:"emailAddress,omitempty"`
-	TwitterHandle          string                 `json:"twitterHandle,omitempty"`
-	FacebookProfile        string                 `json:"facebookProfile,omitempty"`
-	LinkedinProfile        string                 `json:"linkedinProfile,omitempty"`
+	Strapline              string                 `json:"strapline,omitempty"`
 	Description            string                 `json:"description,omitempty"`
 	DescriptionXML         string                 `json:"descriptionXML,omitempty"`
 	ImageURL               string                 `json:"_imageUrl,omitempty"`

@@ -22,15 +22,13 @@ import (
 )
 
 const (
-	testUUID          = "bba39990-c78d-3629-ae83-808c333c6dbc"
-	testUUID2         = "be2e7e2b-0fa2-3969-a69b-74c46e754032"
-	getBrandResponse = `{"uuid":"bba39990-c78d-3629-ae83-808c333c6dbc","prefLabel":"","type":"","alternativeIdentifiers":{}}
-{"uuid":"be2e7e2b-0fa2-3969-a69b-74c46e754032","prefLabel":"","type":"","alternativeIdentifiers":{}}
-`
+	testUUID              = "bba39990-c78d-3629-ae83-808c333c6dbc"
+	testUUID2             = "be2e7e2b-0fa2-3969-a69b-74c46e754032"
+	getBrandResponse      = "{\"uuid\":\"bba39990-c78d-3629-ae83-808c333c6dbc\",\"parentUUID\":\"\",\"prefLabel\":\"\",\"type\":\"\",\"alternativeIdentifiers\":{}}\n{\"uuid\":\"be2e7e2b-0fa2-3969-a69b-74c46e754032\",\"parentUUID\":\"\",\"prefLabel\":\"\",\"type\":\"\",\"alternativeIdentifiers\":{}}\n"
 	getBrandUUIDsResponse = `{"ID":"bba39990-c78d-3629-ae83-808c333c6dbc"}
 {"ID":"be2e7e2b-0fa2-3969-a69b-74c46e754032"}
 `
-	getBrandByUUIDResponse = "{\"uuid\":\"5790972d-a8a2-3c34-a3c7-57a7bbc570df\",\"prefLabel\":\"Financial Times\",\"type\":\"Brands\",\"alternativeIdentifiers\":{\"TME\":[\"RlQK-QnJhbmRzCg==\"],\"uuids\":[\"5790972d-a8a2-3c34-a3c7-57a7bbc570df\"]}}\n"
+	getBrandByUUIDResponse = "{\"uuid\":\"bba39990-c78d-3629-ae83-808c333c6dbc\",\"parentUUID\":\"\",\"prefLabel\":\"Financial Times\",\"type\":\"Brand\",\"alternativeIdentifiers\":{\"TME\":[\"RlQK-QnJhbmRzCg==\"],\"uuids\":[\"bba39990-c78d-3629-ae83-808c333c6dbc\"]}}\n"
 )
 
 func TestHandlers(t *testing.T) {
@@ -48,7 +46,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       true,
 				initialised: true,
-				brands:     []brand{{UUID: testUUID, PrefLabel: "Financial Times", AlternativeIdentifiers: alternativeIdentifiers{UUIDs: []string{testUUID}, TME: []string{"RlQK-QnJhbmRzCg=="}}, Type: "Organisation"}}},
+				brands:      []brand{{UUID: testUUID, PrefLabel: "Financial Times", AlternativeIdentifiers: alternativeIdentifiers{UUIDs: []string{testUUID}, TME: []string{"RlQK-QnJhbmRzCg=="}}, Type: "Brand"}}},
 			http.StatusOK,
 			"application/json",
 			getBrandByUUIDResponse},
@@ -57,7 +55,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       false,
 				initialised: true,
-				brands:     []brand{{}}},
+				brands:      []brand{{}}},
 			http.StatusNotFound,
 			"application/json",
 			"{\"message\": \"Brand not found\"}\n"},
@@ -66,7 +64,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       false,
 				initialised: false,
-				brands:     []brand{}},
+				brands:      []brand{}},
 			http.StatusServiceUnavailable,
 			"application/json",
 			"{\"message\": \"Service Unavailable\"}\n"},
@@ -76,7 +74,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				count:       1,
 				initialised: true,
-				brands:     []brand{{UUID: testUUID}}},
+				brands:      []brand{{UUID: testUUID}}},
 			http.StatusOK,
 			"application/json",
 			"1"},
@@ -87,7 +85,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				count:       1,
 				initialised: true,
-				brands:     []brand{{UUID: testUUID}}},
+				brands:      []brand{{UUID: testUUID}}},
 			http.StatusInternalServerError,
 			"application/json",
 			"{\"message\": \"Something broke\"}\n"},
@@ -98,7 +96,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				count:       1,
 				initialised: false,
-				brands:     []brand{{UUID: testUUID}}},
+				brands:      []brand{{UUID: testUUID}}},
 			http.StatusServiceUnavailable,
 			"application/json", "{\"message\": \"Service Unavailable\"}\n"},
 		{"get brands - success",
@@ -107,7 +105,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				initialised: true,
 				count:       2,
-				brands:     []brand{{UUID: testUUID}, {UUID: testUUID2}}},
+				brands:      []brand{{UUID: testUUID}, {UUID: testUUID2}}},
 			http.StatusOK,
 			"application/json",
 			getBrandResponse},
@@ -116,7 +114,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				initialised: true,
 				count:       0,
-				brands:     []brand{}},
+				brands:      []brand{}},
 			http.StatusNotFound,
 			"application/json",
 			"{\"message\": \"Brands not found\"}\n"},
@@ -125,7 +123,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       false,
 				initialised: false,
-				brands:     []brand{}},
+				brands:      []brand{}},
 			http.StatusServiceUnavailable,
 			"application/json",
 			"{\"message\": \"Service Unavailable\"}\n"},
@@ -135,7 +133,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				initialised: true,
 				count:       1,
-				brands:     []brand{{UUID: testUUID}, {UUID: testUUID2}}},
+				brands:      []brand{{UUID: testUUID}, {UUID: testUUID2}}},
 			http.StatusOK,
 			"application/json",
 			getBrandUUIDsResponse},
@@ -144,7 +142,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				initialised: true,
 				count:       0,
-				brands:     []brand{}},
+				brands:      []brand{}},
 			http.StatusNotFound,
 			"application/json",
 			"{\"message\": \"Brands not found\"}\n"},
@@ -153,7 +151,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       false,
 				initialised: false,
-				brands:     []brand{}},
+				brands:      []brand{}},
 			http.StatusServiceUnavailable,
 			"application/json",
 			"{\"message\": \"Service Unavailable\"}\n"},
@@ -162,7 +160,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       false,
 				initialised: false,
-				brands:     []brand{}},
+				brands:      []brand{}},
 			http.StatusServiceUnavailable,
 			"application/json",
 			""},
@@ -278,7 +276,7 @@ func TestReloadIsCalled(t *testing.T) {
 		initialised: true,
 		dataLoaded:  true,
 		count:       2,
-		brands:     []brand{}}
+		brands:      []brand{}}
 	log.Infof("s.loadDBCalled: %v", s.loadDBCalled)
 	router(s).ServeHTTP(rec, newRequest("POST", "/transformers/brands/__reload"))
 	wg.Wait()
@@ -295,7 +293,7 @@ func newRequest(method, url string) *http.Request {
 
 type dummyService struct {
 	found        bool
-	brands      []brand
+	brands       []brand
 	initialised  bool
 	dataLoaded   bool
 	count        int
