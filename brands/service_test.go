@@ -399,16 +399,17 @@ func TestNoTmeIdentifierWhenLoadingCuratedBrands(t *testing.T) {
 	defer os.Remove(tmpfile.Name())
 
 	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
-	log.Info(brandService)
+	log.Infof("BrandService: %v", brandService)
 	input := []berthaBrand{
 		berthaBrand{
 			Active:         true,
-			PrefLabel:      "Financial Times",
+			PrefLabel:      "Not The Financial Times",
 			Strapline:      "Make the right connections",
 			DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
 			ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-			UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-			ParentUUID:     "dbb0bdae-1f0c-11e4-b0cb-846947257459",
+			UUID:           "dbb0bdae-1f0c-11e4-b0cb-b42342343543",
+			ParentUUID:     "dbb0bdae-1f0c-11e4-b0cb-824324324324",
+			TmeIdentifier:  "",
 		},
 	}
 
