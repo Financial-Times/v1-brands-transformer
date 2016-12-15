@@ -313,23 +313,6 @@ func TestBerthaToBrand(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// func TestBadAddBertha(t *testing.T) {
-// 	testBrand := berthaBrand{
-// 		Active:         true,
-// 		PrefLabel:      "Financial Times",
-// 		Strapline:      "Make the right connections",
-// 		DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-// 		ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-// 		UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-// 		ParentUUID:     "dbb0bdae-1f0c-11e4-b0cb-846947257459",
-// 		TmeIdentifier:  "1234567890",
-// 	}
-// 	emptyBrand := brand{}
-
-// 	_, err := addBerthaInformation(emptyBrand, testBrand)
-// 	assert.EqualError(t, err, "Bertha UUID doesn't match brand UUID")
-// }
-
 func TestGoodAddBertha(t *testing.T) {
 	testBrand := berthaBrand{
 		Active:         true,
@@ -409,4 +392,32 @@ func TestLoadingCuratedBrands(t *testing.T) {
 	assert.Equal(t, true, found)
 	assert.EqualValues(t, expectedBrand, actualOutput)
 	assert.Nil(t, err)
+}
+
+func TestNoTmeIdentifierWhenLoadingCuratedBrands(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+
+	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
+	log.Info(brandService)
+	input := []berthaBrand{
+		berthaBrand{
+			Active:         true,
+			PrefLabel:      "Financial Times",
+			Strapline:      "Make the right connections",
+			DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
+			ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
+			UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
+			ParentUUID:     "dbb0bdae-1f0c-11e4-b0cb-846947257459",
+		},
+	}
+
+	waitTillInit(t, brandService)
+	waitTillDataLoaded(t, brandService)
+
+	brandService.loadCuratedBrands(input)
+
+	actualOutput, found, _ := brandService.getBrandByUUID("dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54")
+	assert.Equal(t, false, found)
+	assert.EqualValues(t, brand{}, actualOutput)
 }
