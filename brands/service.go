@@ -53,6 +53,7 @@ func NewBrandService(repo tmereader.Repository, baseURL string, taxonomyName str
 		err := service.loadDB()
 		if err != nil {
 			log.Errorf("Error while creating BrandService: [%v]", err.Error())
+			return
 		}
 		var bBrands []berthaBrand
 
@@ -254,6 +255,7 @@ func (s *brandServiceImpl) reloadDB() error {
 	err := s.loadDB()
 	if err != nil {
 		log.Errorf("Error while creating BrandService: [%v]", err.Error())
+		return err
 	}
 	var bBrands []berthaBrand
 
