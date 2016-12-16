@@ -11,6 +11,23 @@ const (
 	taxonomyName = "taxonomy_name"
 )
 
+func TestDodgyUUIDTransformBrand(t *testing.T) {
+	testTerm := term{
+		CanonicalName: "Business blog",
+		RawID:         "Brands_86",
+		Aliases: aliases{
+			Alias: []alias{
+				{Name: "Business Blog"},
+				{Name: "The Blog of Business"},
+			}},
+	}
+	brandTaxonomy := "Brands"
+
+	tfp := transformBrand(testTerm, brandTaxonomy)
+	assert.EqualValues(t, []string{"0312776d-bac4-3118-bc76-b93b2cd3f1ba", "fd4459b2-cc4e-4ec8-9853-c5238eb860fb"}, tfp.AlternativeIdentifiers.UUIDs)
+	assert.Equal(t, "fd4459b2-cc4e-4ec8-9853-c5238eb860fb", tfp.UUID)
+}
+
 func TestTransformBrand(t *testing.T) {
 	testTerm := term{
 		CanonicalName: "Bob",
