@@ -11,7 +11,7 @@ const (
 	taxonomyName = "taxonomy_name"
 )
 
-func TestDodgyUUIDTransformBrand(t *testing.T) {
+func TestTransformBrandWithUUIDisInStaticMap(t *testing.T) {
 	testTerm := term{
 		CanonicalName: "Business blog",
 		RawID:         "Brands_86",
