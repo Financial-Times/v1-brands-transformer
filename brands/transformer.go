@@ -38,8 +38,10 @@ func (*BrandTransformer) UnMarshallTerm(content []byte) (interface{}, error) {
 func transformBrand(tmeTerm term, taxonomyName string) brand {
 	tmeIdentifier := buildTmeIdentifier(tmeTerm.RawID, taxonomyName)
 	brandUUID := uuid.NewMD5(uuid.UUID{}, []byte(tmeIdentifier)).String()
+	uuidList := []string{brandUUID}
 	if val, ok := berthaUUIDmap()[tmeIdentifier]; ok {
 		brandUUID = val
+		uuidList = append(uuidList, val)
 	}
 
 	aliasList := buildAliasList(tmeTerm.Aliases, tmeTerm.CanonicalName)
@@ -48,7 +50,7 @@ func transformBrand(tmeTerm term, taxonomyName string) brand {
 		PrefLabel: tmeTerm.CanonicalName,
 		AlternativeIdentifiers: alternativeIdentifiers{
 			TME:   []string{tmeIdentifier},
-			UUIDs: []string{brandUUID},
+			UUIDs: removeDuplicates(uuidList),
 		},
 		Type:    "Brand",
 		Aliases: aliasList,
