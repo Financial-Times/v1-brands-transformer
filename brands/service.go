@@ -230,7 +230,7 @@ func (s *brandServiceImpl) getBrandByUUID(uuid string) (brand, bool, error) {
 		log.Errorf("ERROR unmarshalling cached value for [%v]: %v.", uuid, err.Error())
 		return brand{}, true, err
 	}
-	log.Info(cachedBrand)
+	log.Debug(cachedBrand)
 	return cachedBrand, true, nil
 }
 
@@ -436,6 +436,10 @@ func berthaToBrand(a berthaBrand) (brand, error) {
 	altIds := alternativeIdentifiers{
 		UUIDs: []string{a.UUID},
 		TME:   []string{a.TmeIdentifier},
+	}
+
+	if a.TmeIdentifier == "" {
+		altIds.TME = nil
 	}
 
 	p := brand{
