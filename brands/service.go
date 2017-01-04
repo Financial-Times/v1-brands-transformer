@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	cacheBucket = "brand"
+	cacheBucket             = "brand"
+	financialTimesBrandUuid = "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"
 )
 
 // BrandService - interface for retrieving v1 brands
@@ -382,7 +383,7 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 		for _, b := range bBrands {
 			cachedBrand := bucket.Get([]byte(b.UUID))
 			var a brand
-			if b.TmeIdentifier == "" && b.UUID != "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54" {
+			if b.TmeIdentifier == "" && b.UUID != financialTimesBrandUuid {
 				// We've put this check in because editorial sometimes forget the TME Identifier.
 				// The UUID is for the FT, which is a special case (no TME Identifier but we still want it)
 				log.Warnf("No TME Identifier, ignoring curated brand %s [%s]", b.PrefLabel, b.UUID)
@@ -417,7 +418,13 @@ func addBerthaInformation(a brand, b berthaBrand) (brand, error) {
 	a.UUID = b.UUID
 	a.PrefLabel = b.PrefLabel
 	a.Strapline = b.Strapline
-	a.ParentUUID = b.ParentUUID
+
+	if b.ParentUUID != "" {
+		a.ParentUUID = b.ParentUUID
+	} else {
+		a.ParentUUID = financialTimesBrandUuid
+	}
+
 	a.Description = plainDescription
 	a.DescriptionXML = b.DescriptionXML
 	a.ImageURL = b.ImageURL
@@ -440,6 +447,12 @@ func berthaToBrand(a berthaBrand) (brand, error) {
 
 	if a.TmeIdentifier == "" {
 		altIds.TME = nil
+	}
+
+	if a.ParentUUID != "" {
+		a.ParentUUID = a.ParentUUID
+	} else {
+		a.ParentUUID = financialTimesBrandUuid
 	}
 
 	p := brand{
