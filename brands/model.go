@@ -22,7 +22,6 @@ type brand struct {
 	Description            string                 `json:"description,omitempty"`
 	DescriptionXML         string                 `json:"descriptionXML,omitempty"`
 	ImageURL               string                 `json:"_imageUrl,omitempty"`
-
 }
 
 type alternativeIdentifiers struct {

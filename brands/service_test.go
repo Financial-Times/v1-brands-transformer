@@ -13,6 +13,7 @@ import (
 	"github.com/Financial-Times/tme-reader/tmereader"
 	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"sort"
 )
 
 type testSuiteForBrands struct {
@@ -20,6 +21,56 @@ type testSuiteForBrands struct {
 	uuid  string
 	found bool
 	err   error
+}
+
+const (
+	fredUuid = "28d66fcc-bb56-363d-80c1-f2d957ef58cf"
+	bobUuid  = "be2e7e2b-0fa2-3969-a69b-74c46e754032"
+)
+
+var defaultTypes = []string{"Thing", "Concept", "Brand"}
+
+var bobTMEBrand = brand{
+	UUID:                   bobUuid,
+	PrefLabel:              "Bob",
+	ParentUUID:             financialTimesBrandUuid,
+	AlternativeIdentifiers: alternativeIdentifiers{TME: []string{"Ym9i-dGF4b25vbXlfc3RyaW5n"}, UUIDs: []string{bobUuid}},
+	Aliases:                []string{"Bob"},
+	Type:                   "Brand",
+}
+
+var fredTMEBrand = brand{
+	UUID:                   fredUuid,
+	PrefLabel:              "Fred",
+	ParentUUID:             financialTimesBrandUuid,
+	AlternativeIdentifiers: alternativeIdentifiers{TME: []string{"ZnJlZA==-dGF4b25vbXlfc3RyaW5n"}, UUIDs: []string{fredUuid}},
+	Aliases:                []string{"Fred"},
+	Type:                   "Brand",
+}
+
+var testBerthaBrand = berthaBrand{
+	Active:         true,
+	PrefLabel:      "Financial Times",
+	Strapline:      "Make the right connections",
+	DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
+	ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
+	UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
+	ParentUUID:     financialTimesBrandUuid,
+	TmeIdentifier:  "1234567890",
+}
+var expectedBrand = brand{
+	UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
+	ParentUUID:     financialTimesBrandUuid,
+	PrefLabel:      "Financial Times",
+	Type:           "Brand",
+	Strapline:      "Make the right connections",
+	Description:    "The Financial Times (FT) is one of the world’s leading business news and information organisations.",
+	DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
+	ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDs: []string{"dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"},
+		TME:   []string{"1234567890"},
+	},
 }
 
 func TestInit(t *testing.T) {
@@ -65,8 +116,9 @@ func TestGetBrands(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, res, 2)
-	assert.Equal(t, "28d66fcc-bb56-363d-80c1-f2d957ef58cf", res[0].UUID)
-	assert.Equal(t, "be2e7e2b-0fa2-3969-a69b-74c46e754032", res[1].UUID)
+
+	compareBrands(res[1], bobTMEBrand, t)
+	compareBrands(res[0], fredTMEBrand, t)
 }
 
 func TestGetBrandUUIDs(t *testing.T) {
@@ -98,6 +150,7 @@ func TestGetBrandUUIDs(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, res, 2)
+
 	assert.Equal(t, "28d66fcc-bb56-363d-80c1-f2d957ef58cf", res[0].UUID)
 	assert.Equal(t, "be2e7e2b-0fa2-3969-a69b-74c46e754032", res[1].UUID)
 }
@@ -283,47 +336,12 @@ func (d *blockingRepo) GetTmeTermById(uuid string) (interface{}, error) {
 }
 
 func TestBerthaToBrand(t *testing.T) {
-	testBrand := berthaBrand{
-		Active:         true,
-		PrefLabel:      "Financial Times",
-		Strapline:      "Make the right connections",
-		DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-		ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-		UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-		ParentUUID:     financialTimesBrandUuid,
-		TmeIdentifier:  "1234567890",
-	}
-	expectedBrand := brand{
-		UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-		ParentUUID:     financialTimesBrandUuid,
-		PrefLabel:      "Financial Times",
-		Type:           "Brand",
-		Strapline:      "Make the right connections",
-		Description:    "The Financial Times (FT) is one of the world’s leading business news and information organisations.",
-		DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-		ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-		AlternativeIdentifiers: alternativeIdentifiers{
-			UUIDs: []string{"dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"},
-			TME:   []string{"1234567890"},
-		},
-	}
-
-	actualBrand, err := berthaToBrand(testBrand)
+	actualBrand, err := berthaToBrand(testBerthaBrand)
 	assert.Equal(t, expectedBrand, actualBrand)
 	assert.Nil(t, err)
 }
 
 func TestAddingInformationFromBerthaWorks(t *testing.T) {
-	testBrand := berthaBrand{
-		Active:         true,
-		PrefLabel:      "Financial Times",
-		Strapline:      "Make the right connections",
-		DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-		ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-		UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-		ParentUUID:     financialTimesBrandUuid,
-		TmeIdentifier:  "1234567890",
-	}
 	emptyBrand := brand{
 		UUID:      "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
 		PrefLabel: "Fred Black",
@@ -332,22 +350,8 @@ func TestAddingInformationFromBerthaWorks(t *testing.T) {
 			TME:   []string{"1234567890"},
 		},
 	}
-	expectedBrand := brand{
-		UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-		ParentUUID:     financialTimesBrandUuid,
-		PrefLabel:      "Financial Times",
-		Type:           "Brand",
-		Strapline:      "Make the right connections",
-		Description:    "The Financial Times (FT) is one of the world’s leading business news and information organisations.",
-		DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-		ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-		AlternativeIdentifiers: alternativeIdentifiers{
-			UUIDs: []string{"dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"},
-			TME:   []string{"1234567890"},
-		},
-	}
 
-	actualBrand, err := addBerthaInformation(emptyBrand, testBrand)
+	actualBrand, err := addBerthaInformation(emptyBrand, testBerthaBrand)
 	assert.Equal(t, expectedBrand, actualBrand)
 	assert.Nil(t, err)
 }
@@ -358,32 +362,8 @@ func TestLoadingCuratedBrands(t *testing.T) {
 
 	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
 	log.Info(brandService)
-	input := []berthaBrand{
-		berthaBrand{
-			Active:         true,
-			PrefLabel:      "Financial Times",
-			Strapline:      "Make the right connections",
-			DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-			ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-			UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-			ParentUUID:     financialTimesBrandUuid,
-			TmeIdentifier:  "1234567890",
-		},
-	}
-	expectedBrand := brand{
-		UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-		ParentUUID:     financialTimesBrandUuid,
-		PrefLabel:      "Financial Times",
-		Type:           "Brand",
-		Strapline:      "Make the right connections",
-		Description:    "The Financial Times (FT) is one of the world’s leading business news and information organisations.",
-		DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-		ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-		AlternativeIdentifiers: alternativeIdentifiers{
-			UUIDs: []string{"dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"},
-			TME:   []string{"1234567890"},
-		},
-	}
+	input := []berthaBrand{testBerthaBrand}
+
 	waitTillInit(t, brandService)
 	waitTillDataLoaded(t, brandService)
 
@@ -400,25 +380,22 @@ func TestNoTmeIdentifierWhenLoadingCuratedBrandsThenBrandIsIgnored(t *testing.T)
 
 	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
 	log.Infof("BrandService: %v", brandService)
-	input := []berthaBrand{
-		berthaBrand{
-			Active:         true,
-			PrefLabel:      "Not The Financial Times",
-			Strapline:      "Make the right connections",
-			DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-			ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-			UUID:           "dbb0bdae-1f0c-11e4-b0cb-b42342343543",
-			ParentUUID:     "dbb0bdae-1f0c-11e4-b0cb-824324324324",
-			TmeIdentifier:  "",
-		},
+
+
+	testBerthaBrandWithTme := berthaBrand{
+		Active:         true,
+		PrefLabel:      "Funky Chicken",
+		UUID:           "b74a59aa-4196-4ea8-8934-1147a1f33f23",
 	}
+
+	input := []berthaBrand{testBerthaBrandWithTme}
 
 	waitTillInit(t, brandService)
 	waitTillDataLoaded(t, brandService)
 
 	brandService.loadCuratedBrands(input)
 
-	actualOutput, found, _ := brandService.getBrandByUUID("dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54")
+	actualOutput, found, _ := brandService.getBrandByUUID(testBerthaBrand.UUID)
 	assert.Equal(t, false, found)
 	assert.EqualValues(t, brand{}, actualOutput)
 }
@@ -429,31 +406,7 @@ func TestSetsParentBrandToBeFinacialTimesIfNoOtherParentSetFromBertha(t *testing
 
 	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
 	log.Info(brandService)
-	input := []berthaBrand{
-		berthaBrand{
-			Active:         true,
-			PrefLabel:      "Financial Times",
-			Strapline:      "Make the right connections",
-			DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-			ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-			UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-			TmeIdentifier:  "1234567890",
-		},
-	}
-	expectedBrand := brand{
-		UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-		ParentUUID:     financialTimesBrandUuid,
-		PrefLabel:      "Financial Times",
-		Type:           "Brand",
-		Strapline:      "Make the right connections",
-		Description:    "The Financial Times (FT) is one of the world’s leading business news and information organisations.",
-		DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-		ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-		AlternativeIdentifiers: alternativeIdentifiers{
-			UUIDs: []string{"dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"},
-			TME:   []string{"1234567890"},
-		},
-	}
+	input := []berthaBrand{testBerthaBrand}
 	waitTillInit(t, brandService)
 	waitTillDataLoaded(t, brandService)
 
@@ -462,4 +415,13 @@ func TestSetsParentBrandToBeFinacialTimesIfNoOtherParentSetFromBertha(t *testing
 	assert.Equal(t, true, found)
 	assert.EqualValues(t, expectedBrand, actualOutput)
 	assert.Nil(t, err)
+}
+
+func compareBrands(actual, expected brand, t *testing.T) {
+	sort.Strings(expected.AlternativeIdentifiers.TME)
+	sort.Strings(expected.AlternativeIdentifiers.UUIDs)
+	sort.Strings(actual.AlternativeIdentifiers.TME)
+	sort.Strings(actual.AlternativeIdentifiers.UUIDs)
+
+	assert.EqualValues(t, expected, actual)
 }

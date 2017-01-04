@@ -324,7 +324,7 @@ func (s *brandServiceImpl) processBrands(c <-chan []brand, wg *sync.WaitGroup) {
 				return fmt.Errorf("Cache bucket [%v] not found!", cacheBucket)
 			}
 			for _, anBrand := range brands {
-				if (anBrand.ParentUUID == "") {
+				if anBrand.ParentUUID == "" {
 					anBrand.ParentUUID = financialTimesBrandUuid
 				}
 				marshalledBrand, err := json.Marshal(anBrand)
