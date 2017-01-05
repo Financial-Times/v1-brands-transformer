@@ -15,7 +15,7 @@ or update:
 
 ## Running
 
-`$GOPATH/bin/v1-brands-transformer --bertha-service-url={bertha url} --tme-username={tme-username} --port={port} --tme-password={tme-password} --token={tme-token} --base-url={base-url for the app} --tme-base-url={tme-base-url} --maxRecords={maxRecords} --batchSize={batchSize} --cache-file-name={cache-file-name}`
+`$GOPATH/bin/v1-brands-transformer --bertha-source-url={bertha url} --tme-username={tme-username} --port={port} --tme-password={tme-password} --token={tme-token} --base-url={base-url for the app} --tme-base-url={tme-base-url} --maxRecords={maxRecords} --batchSize={batchSize} --cache-file-name={cache-file-name}`
 
 TME credentials are mandatory and can be found in lastpass
 
@@ -25,7 +25,7 @@ TME credentials are mandatory and can be found in lastpass
 
 `docker build -t coco/v1-brands-transformer .`
 
-`docker run -ti --env BASE_URL=<base url> --env BERTHA_SERVICE_URL=<bertha url> --env TME_BASE_URL=<structure service url> --env TME_USERNAME=<user> --env TME_PASSWORD=<pass> --env TOKEN=<token> --env CACHE_FILE_NAME=<file> coco/v1-brands-transformer`
+`docker run -ti --env BASE_URL=<base url> --env BERTHA_SOURCE_URL=<bertha url> --env TME_BASE_URL=<structure service url> --env TME_USERNAME=<user> --env TME_PASSWORD=<pass> --env TOKEN=<token> --env CACHE_FILE_NAME=<file> coco/v1-brands-transformer`
 
 ## Endpoints
 
