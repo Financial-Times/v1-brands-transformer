@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"sync"
 	"time"
 
@@ -13,7 +12,13 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
 	"github.com/jaytaylor/html2text"
+	"github.com/pborman/uuid"
+	"net/http"
 )
+
+type httpClient interface {
+	Do(req *http.Request) (resp *http.Response, err error)
+}
 
 const (
 	cacheBucket             = "brand"
@@ -45,28 +50,21 @@ type brandServiceImpl struct {
 	cacheFileName string
 	db            *bolt.DB
 	berthaURL     string
+	httpClient    httpClient
 }
 
 // NewBrandService - create a new BrandService
-func NewBrandService(repo tmereader.Repository, baseURL string, taxonomyName string, maxTmeRecords int, cacheFileName string, berthaURL string) BrandService {
-	s := &brandServiceImpl{repository: repo, baseURL: baseURL, taxonomyName: taxonomyName, maxTmeRecords: maxTmeRecords, initialised: true, cacheFileName: cacheFileName, berthaURL: berthaURL}
+func NewBrandService(repo tmereader.Repository,
+	baseURL string,
+	taxonomyName string,
+	maxTmeRecords int,
+	cacheFileName string,
+	berthaURL string,
+	httpClient httpClient) BrandService {
+	s := &brandServiceImpl{repository: repo, baseURL: baseURL, taxonomyName: taxonomyName, maxTmeRecords: maxTmeRecords, initialised: true, cacheFileName: cacheFileName, berthaURL: berthaURL, httpClient: httpClient}
+	s.setDataLoaded(false)
 	go func(service *brandServiceImpl) {
-		err := service.loadDB()
-		if err != nil {
-			log.Errorf("Error while creating BrandService: [%v]", err.Error())
-		}
-		var bBrands []berthaBrand
-
-		bBrands, err = getBerthaBrands(service.berthaURL)
-		if err != nil {
-			log.Errorf("Error on Bertha load: [%v]", err.Error())
-		} else {
-			err = service.loadCuratedBrands(bBrands)
-			if err != nil {
-				log.Errorf("Error while loading in the curated brands: [%v]", err.Error())
-			}
-		}
-
+		service.reloadDB()
 	}(s)
 	return s
 }
@@ -259,7 +257,7 @@ func (s *brandServiceImpl) reloadDB() error {
 	}
 	var bBrands []berthaBrand
 
-	bBrands, err = getBerthaBrands(s.berthaURL)
+	bBrands, err = s.getBerthaBrands(s.berthaURL)
 	if err != nil {
 		log.Errorf("Error on Bertha load: [%v]", err.Error())
 	} else {
@@ -324,7 +322,7 @@ func (s *brandServiceImpl) processBrands(c <-chan []brand, wg *sync.WaitGroup) {
 				return fmt.Errorf("Cache bucket [%v] not found!", cacheBucket)
 			}
 			for _, anBrand := range brands {
-				if anBrand.ParentUUID == ""  {
+				if anBrand.ParentUUID == "" {
 					anBrand.ParentUUID = financialTimesBrandUuid
 				}
 				marshalledBrand, err := json.Marshal(anBrand)
@@ -364,15 +362,36 @@ func (s *brandServiceImpl) createCacheBucket() error {
 	})
 }
 
-func getBerthaBrands(berthaURL string) ([]berthaBrand, error) {
-	res, err := http.Get(berthaURL)
+func (s *brandServiceImpl) getBerthaBrands(berthaURL string) ([]berthaBrand, error) {
+	req, err := http.NewRequest("GET", berthaURL, nil)
 	if err != nil {
 		return []berthaBrand{}, err
 	}
 
+	res, err := s.httpClient.Do(req)
 	var bBrands []berthaBrand
 	err = json.NewDecoder(res.Body).Decode(&bBrands)
 	return bBrands, err
+}
+
+func getBrandUUID(b berthaBrand) string {
+	if b.TmeIdentifier == "" {
+		return ""
+	}
+
+	if b.TmeIdentifier == financialTimesBrandUuid {
+		return financialTimesBrandUuid
+	}
+
+	var brandUUID string
+
+	if val, ok := berthaUUIDmap()[b.TmeIdentifier]; ok {
+		brandUUID = val
+	} else {
+		brandUUID = uuid.NewMD5(uuid.UUID{}, []byte(b.TmeIdentifier)).String()
+	}
+
+	return brandUUID
 }
 
 func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
@@ -385,21 +404,22 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 		}
 
 		for _, b := range bBrands {
-			cachedBrand := bucket.Get([]byte(b.UUID))
-			var a brand
-			if b.TmeIdentifier == "" && b.UUID != financialTimesBrandUuid {
+			brandUUID := getBrandUUID(b)
+			if brandUUID == "" {
 				// We've put this check in because editorial sometimes forget the TME Identifier.
-				// The UUID is for the FT, which is a special case (no TME Identifier but we still want it)
-				log.Warnf("No TME Identifier, ignoring curated brand %s [%s]", b.PrefLabel, b.UUID)
-				continue
-			} else if cachedBrand == nil {
-				log.Warnf("Curated brand %s [%s] was not found in cache.  Adding without V1 information.", b.PrefLabel, b.UUID)
-				a, _ = berthaToBrand(b)
+				log.Warnf("No TME Identifier, ignoring curated brand %s (TmeParentIdentifier[%s], TmeIdentifier[%s])", b.PrefLabel, b.TmeParentIdentifier, b.TmeIdentifier)
+			}
+
+			cachedBrand := bucket.Get([]byte(brandUUID))
+			var a brand
+			if cachedBrand == nil {
+				log.Warnf("Curated brand %s [%s] was not found in cache.  Adding without V1 information.", b.PrefLabel, brandUUID)
+				a, _ = berthaToBrand(b, brandUUID)
 			} else {
 				json.Unmarshal(cachedBrand, &a)
 				a, _ = addBerthaInformation(a, b)
 
-				bucket.Delete([]byte(b.UUID))
+				bucket.Delete([]byte(brandUUID))
 			}
 			newCachedVersion, _ := json.Marshal(a)
 			err := bucket.Put([]byte(a.UUID), newCachedVersion)
@@ -419,14 +439,13 @@ func addBerthaInformation(a brand, b berthaBrand) (brand, error) {
 	if err != nil {
 		return a, err
 	}
-	a.UUID = b.UUID
 	a.PrefLabel = b.PrefLabel
 	a.Strapline = b.Strapline
 
-	if b.ParentUUID == "" && b.UUID != financialTimesBrandUuid{
+	if b.TmeParentIdentifier == "" {
 		a.ParentUUID = financialTimesBrandUuid
 	} else {
-		a.ParentUUID = b.ParentUUID
+		a.ParentUUID = uuid.NewMD5(uuid.UUID{}, []byte(b.TmeParentIdentifier)).String()
 	}
 
 	a.Description = plainDescription
@@ -437,7 +456,7 @@ func addBerthaInformation(a brand, b berthaBrand) (brand, error) {
 	return a, nil
 }
 
-func berthaToBrand(a berthaBrand) (brand, error) {
+func berthaToBrand(a berthaBrand, brandUUID string) (brand, error) {
 	plainDescription, err := html2text.FromString(a.DescriptionXML)
 
 	if err != nil {
@@ -445,21 +464,24 @@ func berthaToBrand(a berthaBrand) (brand, error) {
 	}
 
 	altIds := alternativeIdentifiers{
-		UUIDs: []string{a.UUID},
-		TME:   []string{a.TmeIdentifier},
+		UUIDs: []string{brandUUID},
+		TME:   []string{},
 	}
 
-	if a.TmeIdentifier == "" {
-		altIds.TME = nil
+	if a.TmeIdentifier != "" && a.TmeIdentifier != financialTimesBrandUuid {
+		altIds.TME = []string{a.TmeIdentifier}
 	}
 
-	if a.ParentUUID == "" && a.UUID != financialTimesBrandUuid{
-		a.ParentUUID = financialTimesBrandUuid
+	var parentUUID string
+	if a.TmeParentIdentifier == "" && brandUUID != financialTimesBrandUuid {
+		parentUUID = financialTimesBrandUuid
+	} else if a.TmeParentIdentifier != "" {
+		parentUUID = uuid.NewMD5(uuid.UUID{}, []byte(a.TmeParentIdentifier)).String()
 	}
 
 	p := brand{
-		UUID:                   a.UUID,
-		ParentUUID:             a.ParentUUID,
+		UUID:                   brandUUID,
+		ParentUUID:             parentUUID,
 		PrefLabel:              a.PrefLabel,
 		Type:                   "Brand",
 		Strapline:              a.Strapline,

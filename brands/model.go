@@ -1,14 +1,13 @@
 package brands
 
 type berthaBrand struct {
-	Active         bool   `json:"active"`
-	PrefLabel      string `json:"prefLabel"`
-	Strapline      string `json:"strapline"`
-	ImageURL       string `json:"imageurl"`
-	DescriptionXML string `json:"descriptionxml"`
-	UUID           string `json:"uuid"`
-	ParentUUID     string `json:"parentuuid"`
-	TmeIdentifier  string `json:"tmeidentifier"`
+	Active              bool   `json:"active"`
+	PrefLabel           string `json:"prefLabel"`
+	Strapline           string `json:"strapline"`
+	ImageURL            string `json:"imageurl"`
+	DescriptionXML      string `json:"descriptionxml"`
+	TmeIdentifier       string `json:"tmeidentifier"`
+	TmeParentIdentifier string `json:"tmeparentidentifier"`
 }
 
 type brand struct {
