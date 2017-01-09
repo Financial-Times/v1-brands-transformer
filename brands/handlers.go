@@ -170,3 +170,9 @@ func writeJSONMessageWithStatus(w http.ResponseWriter, msg string, statusCode in
 func writeStatusServiceUnavailable(w http.ResponseWriter) {
 	writeJSONMessageWithStatus(w, "Service Unavailable", http.StatusServiceUnavailable)
 }
+
+//OnlyPostAllowed - Used to tell the user the METHOD type is not POST.
+func (h *BrandHandler) OnlyPostAllowed(writer http.ResponseWriter, req *http.Request) {
+	writer.Header().Set("Allow", "POST")
+	writer.WriteHeader(http.StatusMethodNotAllowed)
+}
