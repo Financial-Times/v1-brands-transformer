@@ -176,3 +176,9 @@ func (h *BrandHandler) OnlyPostAllowed(writer http.ResponseWriter, req *http.Req
 	writer.Header().Set("Allow", "POST")
 	writer.WriteHeader(http.StatusMethodNotAllowed)
 }
+
+//OnlyGetAllowed - Used to tell the user the METHOD type is not GET.
+func (h *BrandHandler) OnlyGetAllowed(writer http.ResponseWriter, req *http.Request) {
+	writer.Header().Set("Allow", "GET")
+	writer.WriteHeader(http.StatusMethodNotAllowed)
+}
