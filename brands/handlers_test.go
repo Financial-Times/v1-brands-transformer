@@ -50,6 +50,15 @@ func TestHandlers(t *testing.T) {
 			http.StatusOK,
 			"application/json",
 			getBrandByUUIDResponse},
+		{"405 - get brand by uuid",
+			newRequest("POST", fmt.Sprintf("/transformers/brands/%s", testUUID)),
+			&dummyService{
+				found:       true,
+				initialised: true,
+				brands:      []brand{{UUID: testUUID, PrefLabel: "Financial Times", AlternativeIdentifiers: alternativeIdentifiers{UUIDs: []string{testUUID}, TME: []string{"RlQK-QnJhbmRzCg=="}}, Type: "Brand"}}},
+			http.StatusMethodNotAllowed,
+			"application/json",
+			""},
 		{"Not found - get brand by uuid",
 			newRequest("GET", fmt.Sprintf("/transformers/brands/%s", testUUID)),
 			&dummyService{
@@ -78,6 +87,16 @@ func TestHandlers(t *testing.T) {
 			http.StatusOK,
 			"application/json",
 			"1"},
+		{"405 - get brands count",
+			newRequest("POST", "/transformers/brands/__count"),
+			&dummyService{
+				found:       true,
+				count:       1,
+				initialised: true,
+				brands:      []brand{{UUID: testUUID}}},
+			http.StatusMethodNotAllowed,
+			"application/json",
+			""},
 		{"Failure - get brands count",
 			newRequest("GET", "/transformers/brands/__count"),
 			&dummyService{
@@ -109,6 +128,16 @@ func TestHandlers(t *testing.T) {
 			http.StatusOK,
 			"application/json",
 			getBrandResponse},
+		{"get brands - 405",
+			newRequest("POST", "/transformers/brands"),
+			&dummyService{
+				found:       true,
+				initialised: true,
+				count:       2,
+				brands:      []brand{{UUID: testUUID}, {UUID: testUUID2}}},
+			http.StatusMethodNotAllowed,
+			"application/json",
+			""},
 		{"get brands - Not found",
 			newRequest("GET", "/transformers/brands"),
 			&dummyService{
@@ -128,7 +157,7 @@ func TestHandlers(t *testing.T) {
 			"application/json",
 			"{\"message\": \"Service Unavailable\"}\n"},
 		{"get brands IDS - Success",
-			newRequest("GET", "/transformers/brands/__id"),
+			newRequest("GET", "/transformers/brands/__ids"),
 			&dummyService{
 				found:       true,
 				initialised: true,
@@ -138,7 +167,7 @@ func TestHandlers(t *testing.T) {
 			"application/json",
 			getBrandUUIDsResponse},
 		{"get brands IDS - Not found",
-			newRequest("GET", "/transformers/brands/__id"),
+			newRequest("GET", "/transformers/brands/__ids"),
 			&dummyService{
 				initialised: true,
 				count:       0,
@@ -147,7 +176,7 @@ func TestHandlers(t *testing.T) {
 			"application/json",
 			"{\"message\": \"Brands not found\"}\n"},
 		{"get brands IDS - Service unavailable",
-			newRequest("GET", "/transformers/brands/__id"),
+			newRequest("GET", "/transformers/brands/__ids"),
 			&dummyService{
 				found:       false,
 				initialised: false,
@@ -372,15 +401,31 @@ func (s *dummyService) reloadDB() error {
 }
 
 func router(s BrandService) *mux.Router {
-	m := mux.NewRouter()
-	h := NewBrandHandler(s)
-	m.HandleFunc("/transformers/brands", h.GetBrands).Methods("GET")
-	m.HandleFunc("/transformers/brands/__count", h.GetCount).Methods("GET")
-	m.HandleFunc("/transformers/brands/__reload", h.Reload).Methods("POST")
-	m.HandleFunc("/transformers/brands/__id", h.GetBrandUUIDs).Methods("GET")
-	m.HandleFunc("/transformers/brands/{uuid}", h.GetBrandByUUID).Methods("GET")
-	m.HandleFunc("/__health", v1a.Handler("V1 Brands Transformer Healthchecks", "Checks for the health of the service", h.HealthCheck()))
-	g2gHandler := status.NewGoodToGoHandler(gtg.StatusChecker(h.G2GCheck))
-	m.HandleFunc(status.GTGPath, g2gHandler)
-	return m
+	handler := NewBrandHandler(s)
+	servicesRouter := mux.NewRouter()
+
+	getBrandsSubrouter := servicesRouter.Path("/transformers/brands").Subrouter()
+	getBrandsSubrouter.Methods("GET").HandlerFunc(handler.GetBrands)
+	getBrandsSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	brandCountSubrouter := servicesRouter.Path("/transformers/brands/__count").Subrouter()
+	brandCountSubrouter.Methods("GET").HandlerFunc(handler.GetCount)
+	brandCountSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	brandIDsSubrouter := servicesRouter.Path("/transformers/brands/__ids").Subrouter()
+	brandIDsSubrouter.Methods("GET").HandlerFunc(handler.GetBrandUUIDs)
+	brandIDsSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	brandByUUIDSubrouter := servicesRouter.Path("/transformers/brands/{uuid:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})}").Subrouter()
+	brandByUUIDSubrouter.Methods("GET").HandlerFunc(handler.GetBrandByUUID)
+	brandByUUIDSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	reloadSubrouter := servicesRouter.Path("/transformers/brands/__reload").Subrouter()
+	reloadSubrouter.Methods("POST").HandlerFunc(handler.Reload)
+	reloadSubrouter.NewRoute().HandlerFunc(handler.OnlyPostAllowed)
+
+	servicesRouter.HandleFunc("/__health", v1a.Handler("V1 Brands Transformer Healthchecks", "Checks for the health of the service", handler.HealthCheck()))
+	g2gHandler := status.NewGoodToGoHandler(gtg.StatusChecker(handler.G2GCheck))
+	servicesRouter.HandleFunc(status.GTGPath, g2gHandler)
+	return servicesRouter
 }
