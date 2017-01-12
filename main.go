@@ -141,11 +141,25 @@ func main() {
 func router(handler brands.BrandHandler) {
 	servicesRouter := mux.NewRouter()
 
-	servicesRouter.HandleFunc("/transformers/brands", handler.GetBrands).Methods("GET")
-	servicesRouter.HandleFunc("/transformers/brands/__count", handler.GetCount).Methods("GET")
-	servicesRouter.HandleFunc("/transformers/brands/__ids", handler.GetBrandUUIDs).Methods("GET")
-	servicesRouter.HandleFunc("/transformers/brands/__reload", handler.Reload).Methods("POST")
-	servicesRouter.HandleFunc("/transformers/brands/{uuid:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})}", handler.GetBrandByUUID).Methods("GET")
+	getBrandsSubrouter := servicesRouter.Path("/transformers/brands").Subrouter()
+	getBrandsSubrouter.Methods("GET").HandlerFunc(handler.GetBrands)
+	getBrandsSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	brandCountSubrouter := servicesRouter.Path("/transformers/brands/__count").Subrouter()
+	brandCountSubrouter.Methods("GET").HandlerFunc(handler.GetCount)
+	brandCountSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	brandIDsSubrouter := servicesRouter.Path("/transformers/brands/__ids").Subrouter()
+	brandIDsSubrouter.Methods("GET").HandlerFunc(handler.GetBrandUUIDs)
+	brandIDsSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	brandByUUIDSubrouter := servicesRouter.Path("/transformers/brands/{uuid:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})}").Subrouter()
+	brandByUUIDSubrouter.Methods("GET").HandlerFunc(handler.GetBrandByUUID)
+	brandByUUIDSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
+
+	reloadSubrouter := servicesRouter.Path("/transformers/brands/__reload").Subrouter()
+	reloadSubrouter.Methods("POST").HandlerFunc(handler.Reload)
+	reloadSubrouter.NewRoute().HandlerFunc(handler.OnlyPostAllowed)
 
 	var monitoringRouter http.Handler = servicesRouter
 	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)

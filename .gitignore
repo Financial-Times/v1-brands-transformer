@@ -15,3 +15,6 @@ v1-brands-transformer
 *.db
 *.lock
 tmp*
+
+.vscode
+debug
