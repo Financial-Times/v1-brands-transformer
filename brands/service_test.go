@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"bytes"
 	"github.com/Financial-Times/tme-reader/tmereader"
 	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"net/http"
 	"sort"
 )
 
@@ -23,9 +25,23 @@ type testSuiteForBrands struct {
 	err   error
 }
 
+type mockClient struct {
+	resp []berthaBrand
+	err  error
+}
+
+func (c *mockClient) Do(req *http.Request) (*http.Response, error) {
+	b, e := json.Marshal(c.resp)
+	if c.err == nil {
+		c.err = e
+	}
+	cb := ioutil.NopCloser(bytes.NewReader(b))
+	return &http.Response{Body: cb}, c.err
+}
+
 const (
-	fredUuid = "28d66fcc-bb56-363d-80c1-f2d957ef58cf"
-	bobUuid  = "be2e7e2b-0fa2-3969-a69b-74c46e754032"
+	fredUuid = "132a00d6-966c-3afb-b5c6-35da4f0dd70e"
+	bobUuid  = "89400620-0727-3b07-b39e-3e614c115706"
 )
 
 var defaultTypes = []string{"Thing", "Concept", "Brand"}
@@ -34,7 +50,7 @@ var bobTMEBrand = brand{
 	UUID:                   bobUuid,
 	PrefLabel:              "Bob",
 	ParentUUID:             financialTimesBrandUuid,
-	AlternativeIdentifiers: alternativeIdentifiers{TME: []string{"Ym9i-dGF4b25vbXlfc3RyaW5n"}, UUIDs: []string{bobUuid}},
+	AlternativeIdentifiers: alternativeIdentifiers{TME: []string{"Ym9i-QnJhbmRz"}, UUIDs: []string{bobUuid}},
 	Aliases:                []string{"Bob"},
 	Type:                   "Brand",
 }
@@ -43,24 +59,24 @@ var fredTMEBrand = brand{
 	UUID:                   fredUuid,
 	PrefLabel:              "Fred",
 	ParentUUID:             financialTimesBrandUuid,
-	AlternativeIdentifiers: alternativeIdentifiers{TME: []string{"ZnJlZA==-dGF4b25vbXlfc3RyaW5n"}, UUIDs: []string{fredUuid}},
+	AlternativeIdentifiers: alternativeIdentifiers{TME: []string{"ZnJlZA==-QnJhbmRz"}, UUIDs: []string{fredUuid}},
 	Aliases:                []string{"Fred"},
 	Type:                   "Brand",
 }
 
 var testBerthaBrand = berthaBrand{
-	Active:         true,
-	PrefLabel:      "Financial Times",
-	Strapline:      "Make the right connections",
-	DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
-	ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-	UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-	ParentUUID:     financialTimesBrandUuid,
-	TmeIdentifier:  "1234567890",
+	Active:              true,
+	PrefLabel:           "Financial Times",
+	Strapline:           "Make the right connections",
+	DescriptionXML:      "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
+	ImageURL:            "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
+	TmeParentIdentifier: "TmeParentIdentifier",
+	TmeIdentifier:       "1234567890",
 }
+
 var expectedBrand = brand{
-	UUID:           "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-	ParentUUID:     financialTimesBrandUuid,
+	UUID:           "e807f1fc-f82d-332f-9bb0-18ca6738a19f",
+	ParentUUID:     "17b1538f-eda4-3402-9304-98853fb58c4d",
 	PrefLabel:      "Financial Times",
 	Type:           "Brand",
 	Strapline:      "Make the right connections",
@@ -68,8 +84,55 @@ var expectedBrand = brand{
 	DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations.</p>",
 	ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
 	AlternativeIdentifiers: alternativeIdentifiers{
-		UUIDs: []string{"dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"},
+		UUIDs: []string{"e807f1fc-f82d-332f-9bb0-18ca6738a19f"},
 		TME:   []string{"1234567890"},
+	},
+}
+
+var testBerthaBrandFixedUUID = berthaBrand{
+	Active:         true,
+	PrefLabel:      "FT Data",
+	Strapline:      "Strapline",
+	DescriptionXML: "<p>DescriptionXML</p>",
+	ImageURL:       "http://some.ft.com/image/url",
+	TmeIdentifier:  "MGY2ZTQ3MTYtYjJiNS00ODVhLTlkYTktNzZlNzc3YTcxOWYy-QnJhbmRz",
+}
+
+var expectedBrandFixedUUID = brand{
+	UUID:           "b8513403-7892-4901-bb97-1765fc0ba190",
+	ParentUUID:     financialTimesBrandUuid,
+	PrefLabel:      "FT Data",
+	Type:           "Brand",
+	Strapline:      "Strapline",
+	Description:    "DescriptionXML",
+	DescriptionXML: "<p>DescriptionXML</p>",
+	ImageURL:       "http://some.ft.com/image/url",
+	Aliases:        []string{"FT Data"},
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDs: []string{"c4316c4a-da19-3a29-bf48-75761174756f", "b8513403-7892-4901-bb97-1765fc0ba190"},
+		TME:   []string{"MGY2ZTQ3MTYtYjJiNS00ODVhLTlkYTktNzZlNzc3YTcxOWYy-QnJhbmRz"},
+	},
+}
+
+var testBerthaBrandForFT = berthaBrand{
+	Active:         true,
+	PrefLabel:      "Financial Times",
+	Strapline:      "Make the right connections",
+	DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations, recognised internationally for its authority, integrity and accuracy.</p>",
+	ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
+	TmeIdentifier:  financialTimesBrandUuid,
+}
+
+var expectedBrandFT = brand{
+	UUID:           financialTimesBrandUuid,
+	PrefLabel:      "Financial Times",
+	Type:           "Brand",
+	Strapline:      "Make the right connections",
+	Description:    "The Financial Times (FT) is one of the world’s leading business news and information organisations, recognised internationally for its authority, integrity and accuracy.",
+	DescriptionXML: "<p>The Financial Times (FT) is one of the world’s leading business news and information organisations, recognised internationally for its authority, integrity and accuracy.</p>",
+	ImageURL:       "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
+	AlternativeIdentifiers: alternativeIdentifiers{
+		UUIDs: []string{financialTimesBrandUuid},
 	},
 }
 
@@ -151,8 +214,8 @@ func TestGetBrandUUIDs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, res, 2)
 
-	assert.Equal(t, "28d66fcc-bb56-363d-80c1-f2d957ef58cf", res[0].UUID)
-	assert.Equal(t, "be2e7e2b-0fa2-3969-a69b-74c46e754032", res[1].UUID)
+	assert.Equal(t, "132a00d6-966c-3afb-b5c6-35da4f0dd70e", res[0].UUID)
+	assert.Equal(t, "89400620-0727-3b07-b39e-3e614c115706", res[1].UUID)
 }
 
 func TestGetBrandLinks(t *testing.T) {
@@ -181,8 +244,8 @@ func TestGetBrandLinks(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, res, 2)
-	assert.Equal(t, "/base/url/28d66fcc-bb56-363d-80c1-f2d957ef58cf", res[0].APIURL)
-	assert.Equal(t, "/base/url/be2e7e2b-0fa2-3969-a69b-74c46e754032", res[1].APIURL)
+	assert.Equal(t, "/base/url/132a00d6-966c-3afb-b5c6-35da4f0dd70e", res[0].APIURL)
+	assert.Equal(t, "/base/url/89400620-0727-3b07-b39e-3e614c115706", res[1].APIURL)
 }
 
 func TestGetCount(t *testing.T) {
@@ -223,7 +286,7 @@ func TestGetBrandByUUID(t *testing.T) {
 	waitTillDataLoaded(t, service)
 
 	tests := []testSuiteForBrands{
-		{"Success", "28d66fcc-bb56-363d-80c1-f2d957ef58cf", true, nil},
+		{"Success", "132a00d6-966c-3afb-b5c6-35da4f0dd70e", true, nil},
 		{"Success", "xxxxxxxx-bb56-363d-80c1-f2d957ef58cf", false, nil}}
 	for _, test := range tests {
 		brand, found, err := service.getBrandByUUID(test.uuid)
@@ -253,6 +316,125 @@ func TestFailingOpeningDB(t *testing.T) {
 	assert.False(t, service.isInitialised(), "isInitialised should be false")
 }
 
+func TestBerthaToBrand(t *testing.T) {
+	actualBrand, err := berthaToBrand(testBerthaBrand, "e807f1fc-f82d-332f-9bb0-18ca6738a19f")
+	assert.Equal(t, expectedBrand, actualBrand)
+	assert.Nil(t, err)
+}
+
+func TestAddingInformationFromBerthaWorks(t *testing.T) {
+	emptyBrand := brand{
+		UUID:      "e807f1fc-f82d-332f-9bb0-18ca6738a19f",
+		PrefLabel: "Fred Black",
+		AlternativeIdentifiers: alternativeIdentifiers{
+			UUIDs: []string{"e807f1fc-f82d-332f-9bb0-18ca6738a19f"},
+			TME:   []string{"1234567890"},
+		},
+	}
+
+	actualBrand, err := addBerthaInformation(emptyBrand, testBerthaBrand)
+	assert.Equal(t, expectedBrand, actualBrand)
+	assert.Nil(t, err)
+}
+
+func TestLoadingCuratedBrands(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+
+	brandService := NewBrandService(&dummyRepo{}, "/base/url", "Brands", 1, tmpfile.Name(), "/bertha/url", &mockClient{})
+	input := []berthaBrand{testBerthaBrand}
+
+	waitTillInit(t, brandService)
+	waitTillDataLoaded(t, brandService)
+
+	brandService.loadCuratedBrands(input)
+	actualOutput, found, err := brandService.getBrandByUUID("e807f1fc-f82d-332f-9bb0-18ca6738a19f")
+	assert.Equal(t, true, found)
+	assert.EqualValues(t, expectedBrand, actualOutput)
+	assert.Nil(t, err)
+}
+
+func TestNoTmeIdentifierWhenLoadingCuratedBrandsThenBrandIsIgnored(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+
+	brandService := NewBrandService(&dummyRepo{}, "/base/url", "Brands", 1, tmpfile.Name(), "/bertha/url", &mockClient{})
+
+	testBerthaBrandWithTme := berthaBrand{
+		Active:              true,
+		PrefLabel:           "Funky Chicken",
+		TmeParentIdentifier: "some TmeParentIdentifier",
+	}
+
+	input := []berthaBrand{testBerthaBrandWithTme}
+
+	waitTillInit(t, brandService)
+	waitTillDataLoaded(t, brandService)
+
+	brandService.loadCuratedBrands(input)
+
+	actualOutput, err := brandService.getCount()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, actualOutput)
+}
+
+func TestSetsParentBrandToBeFinacialTimesIfNoOtherParentSetFromBertha(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+
+	brandService := NewBrandService(&dummyRepo{}, "/base/url", "Brands", 1, tmpfile.Name(), "/bertha/url", &mockClient{})
+	input := []berthaBrand{testBerthaBrand}
+	waitTillInit(t, brandService)
+	waitTillDataLoaded(t, brandService)
+
+	brandService.loadCuratedBrands(input)
+	actualOutput, found, err := brandService.getBrandByUUID("e807f1fc-f82d-332f-9bb0-18ca6738a19f")
+	assert.Equal(t, true, found)
+	assert.EqualValues(t, expectedBrand, actualOutput)
+	assert.Nil(t, err)
+}
+
+//  Replaces data from TME with Bertha updates
+func TestBerthaLoadedCorrectly(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+	repo := dummyRepo{terms: []term{{CanonicalName: "awesome brand", RawID: "some tme identifier"}, {CanonicalName: "FT Data", RawID: "0f6e4716-b2b5-485a-9da9-76e777a719f2"}}}
+	client := mockClient{resp: []berthaBrand{testBerthaBrand, testBerthaBrandFixedUUID}}
+	brandService := NewBrandService(&repo, "/base/url", "Brands", 1, tmpfile.Name(), "/bertha/url", &client)
+
+	waitTillInit(t, brandService)
+	waitTillDataLoaded(t, brandService)
+
+	reader, err := brandService.getBrands()
+	assert.NoError(t, err)
+	printBrands(&reader)
+	assertCount(t, brandService, 3)
+	actualBrand, found, err := brandService.getBrandByUUID(expectedBrandFixedUUID.UUID)
+	assert.True(t, found)
+	assert.NoError(t, err)
+	assert.EqualValues(t, expectedBrandFixedUUID, actualBrand)
+}
+
+func TestBerthaLoadedFTCorrectly(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+	repo := dummyRepo{terms: []term{}}
+	client := mockClient{resp: []berthaBrand{testBerthaBrandForFT}}
+	brandService := NewBrandService(&repo, "/base/url", "Brands", 1, tmpfile.Name(), "/bertha/url", &client)
+
+	waitTillInit(t, brandService)
+	waitTillDataLoaded(t, brandService)
+
+	reader, err := brandService.getBrands()
+	assert.NoError(t, err)
+	printBrands(&reader)
+	assertCount(t, brandService, 1)
+	actualBrand, found, err := brandService.getBrandByUUID(financialTimesBrandUuid)
+	assert.True(t, found)
+	assert.NoError(t, err)
+	assert.EqualValues(t, expectedBrandFT, actualBrand)
+}
+
 func assertCount(t *testing.T, s BrandService, expected int) {
 	count, err := s.getCount()
 	assert.NoError(t, err)
@@ -260,7 +442,7 @@ func assertCount(t *testing.T, s BrandService, expected int) {
 }
 
 func createTestBrandService(repo tmereader.Repository, cacheFileName string) BrandService {
-	return NewBrandService(repo, "/base/url", "taxonomy_string", 1, cacheFileName, "http://bertha/url")
+	return NewBrandService(repo, "/base/url", "Brands", 1, cacheFileName, "http://bertha/url", &mockClient{})
 }
 
 func getTempFile(t *testing.T) *os.File {
@@ -335,88 +517,13 @@ func (d *blockingRepo) GetTmeTermById(uuid string) (interface{}, error) {
 	return nil, nil
 }
 
-func TestBerthaToBrand(t *testing.T) {
-	actualBrand, err := berthaToBrand(testBerthaBrand)
-	assert.Equal(t, expectedBrand, actualBrand)
-	assert.Nil(t, err)
-}
-
-func TestAddingInformationFromBerthaWorks(t *testing.T) {
-	emptyBrand := brand{
-		UUID:      "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-		PrefLabel: "Fred Black",
-		AlternativeIdentifiers: alternativeIdentifiers{
-			UUIDs: []string{"dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"},
-			TME:   []string{"1234567890"},
-		},
+func printBrands(reader io.Reader) {
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		log.Infof("%s \n", scanner.Text())
 	}
 
-	actualBrand, err := addBerthaInformation(emptyBrand, testBerthaBrand)
-	assert.Equal(t, expectedBrand, actualBrand)
-	assert.Nil(t, err)
 }
-
-func TestLoadingCuratedBrands(t *testing.T) {
-	tmpfile := getTempFile(t)
-	defer os.Remove(tmpfile.Name())
-
-	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
-	log.Info(brandService)
-	input := []berthaBrand{testBerthaBrand}
-
-	waitTillInit(t, brandService)
-	waitTillDataLoaded(t, brandService)
-
-	brandService.loadCuratedBrands(input)
-	actualOutput, found, err := brandService.getBrandByUUID("dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54")
-	assert.Equal(t, true, found)
-	assert.EqualValues(t, expectedBrand, actualOutput)
-	assert.Nil(t, err)
-}
-
-func TestNoTmeIdentifierWhenLoadingCuratedBrandsThenBrandIsIgnored(t *testing.T) {
-	tmpfile := getTempFile(t)
-	defer os.Remove(tmpfile.Name())
-
-	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
-	log.Infof("BrandService: %v", brandService)
-
-
-	testBerthaBrandWithTme := berthaBrand{
-		Active:         true,
-		PrefLabel:      "Funky Chicken",
-		UUID:           "b74a59aa-4196-4ea8-8934-1147a1f33f23",
-	}
-
-	input := []berthaBrand{testBerthaBrandWithTme}
-
-	waitTillInit(t, brandService)
-	waitTillDataLoaded(t, brandService)
-
-	brandService.loadCuratedBrands(input)
-
-	actualOutput, found, _ := brandService.getBrandByUUID(testBerthaBrand.UUID)
-	assert.Equal(t, false, found)
-	assert.EqualValues(t, brand{}, actualOutput)
-}
-
-func TestSetsParentBrandToBeFinacialTimesIfNoOtherParentSetFromBertha(t *testing.T) {
-	tmpfile := getTempFile(t)
-	defer os.Remove(tmpfile.Name())
-
-	brandService := NewBrandService(&dummyRepo{}, "/base/url", "taxonomy", 1, tmpfile.Name(), "/bertha/url")
-	log.Info(brandService)
-	input := []berthaBrand{testBerthaBrand}
-	waitTillInit(t, brandService)
-	waitTillDataLoaded(t, brandService)
-
-	brandService.loadCuratedBrands(input)
-	actualOutput, found, err := brandService.getBrandByUUID("dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54")
-	assert.Equal(t, true, found)
-	assert.EqualValues(t, expectedBrand, actualOutput)
-	assert.Nil(t, err)
-}
-
 func compareBrands(actual, expected brand, t *testing.T) {
 	sort.Strings(expected.AlternativeIdentifiers.TME)
 	sort.Strings(expected.AlternativeIdentifiers.UUIDs)
