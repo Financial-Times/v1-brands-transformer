@@ -154,7 +154,7 @@ func router(handler brands.BrandHandler) {
 	brandIDsSubrouter.Methods("GET").HandlerFunc(handler.GetBrandUUIDs)
 	brandIDsSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
 
-	brandByUUIDSubrouter := servicesRouter.Path("/transformers/brands/{uuid:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})}").Subrouter()
+	brandByUUIDSubrouter := servicesRouter.Path("/transformers/brands/{uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}").Subrouter()
 	brandByUUIDSubrouter.Methods("GET").HandlerFunc(handler.GetBrandByUUID)
 	brandByUUIDSubrouter.NewRoute().HandlerFunc(handler.OnlyGetAllowed)
 
