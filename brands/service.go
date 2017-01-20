@@ -300,6 +300,8 @@ func (s *brandServiceImpl) loadDB() error {
 		s.processTerms(terms, c)
 		responseCount += s.maxTmeRecords
 	}
+
+	log.Info("Terms all processed.")
 	return nil
 }
 
@@ -397,6 +399,7 @@ func getBrandUUID(b berthaBrand) string {
 func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 	s.Lock()
 	defer s.Unlock()
+	log.Infof("Loading curated brands from [%s]", s.berthaURL)
 	err := s.db.Batch(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(cacheBucket))
 		if bucket == nil {
@@ -408,6 +411,7 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 			if brandUUID == "" {
 				// We've put this check in because editorial sometimes forget the TME Identifier.
 				log.Warnf("No TME Identifier, ignoring curated brand %s (TmeParentIdentifier[%s], TmeIdentifier[%s])", b.PrefLabel, b.TmeParentIdentifier, b.TmeIdentifier)
+				continue
 			}
 
 			cachedBrand := bucket.Get([]byte(brandUUID))
@@ -431,6 +435,7 @@ func (s *brandServiceImpl) loadCuratedBrands(bBrands []berthaBrand) error {
 		return nil
 	})
 
+	log.Info("Done loading curated brands.")
 	return err
 }
 
