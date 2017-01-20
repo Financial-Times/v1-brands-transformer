@@ -131,6 +131,7 @@ func main() {
 		router(handler)
 
 		log.Printf("listening on %d", *port)
+		log.Printf("Using bertha-source-url: %v", *berthaSrcURL)
 		err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
 		if err != nil {
 			log.Errorf("Error by listen and serve: %v", err.Error())
