@@ -142,7 +142,9 @@ func (h *BrandHandler) Reload(writer http.ResponseWriter, req *http.Request) {
 
 	go func() {
 		if err := h.service.reloadDB(); err != nil {
-			log.Errorf("ERROR opening db: %v", err.Error())
+			log.Errorf("ERROR reloading db: %v", err.Error())
+			writeJSONMessageWithStatus(writer, "Error reloading brands.", http.StatusInternalServerError)
+			return
 		}
 	}()
 	writeJSONMessageWithStatus(writer, "Reloading brands", http.StatusAccepted)

@@ -64,7 +64,10 @@ func NewBrandService(repo tmereader.Repository,
 	s := &brandServiceImpl{repository: repo, baseURL: baseURL, taxonomyName: taxonomyName, maxTmeRecords: maxTmeRecords, initialised: true, cacheFileName: cacheFileName, berthaURL: berthaURL, httpClient: httpClient}
 	s.setDataLoaded(false)
 	go func(service *brandServiceImpl) {
-		service.reloadDB()
+		err := service.reloadDB()
+		if err != nil {
+			log.Fatalf("Cannot reload DB. Error was: %s",err.Error())
+		}
 	}(s)
 	return s
 }
@@ -260,6 +263,7 @@ func (s *brandServiceImpl) reloadDB() error {
 	bBrands, err = s.getBerthaBrands(s.berthaURL)
 	if err != nil {
 		log.Errorf("Error on Bertha load: [%v]", err.Error())
+		return err
 	} else {
 		err = s.loadCuratedBrands(bBrands)
 		if err != nil {
