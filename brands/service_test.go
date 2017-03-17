@@ -301,21 +301,6 @@ func TestGetBrandByUUID(t *testing.T) {
 	}
 }
 
-func TestFailingOpeningDB(t *testing.T) {
-	dir, err := ioutil.TempDir("", "service_test")
-	assert.NoError(t, err)
-	service := createTestBrandService(&dummyRepo{}, dir)
-	defer service.Shutdown()
-	for i := 1; i <= 1000; i++ {
-		if !service.isInitialised() {
-			log.Info("isInitialised was false")
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	assert.False(t, service.isInitialised(), "isInitialised should be false")
-}
-
 func TestBerthaToBrand(t *testing.T) {
 	actualBrand, err := berthaToBrand(testBerthaBrand, "e807f1fc-f82d-332f-9bb0-18ca6738a19f")
 	assert.Equal(t, expectedBrand, actualBrand)
