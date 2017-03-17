@@ -278,7 +278,8 @@ func TestHandlers(t *testing.T) {
 	for _, test := range tests {
 		wg.Add(1)
 		rec := httptest.NewRecorder()
-		router(test.dummyService).ServeHTTP(rec, test.req)
+		muxRouter :=router(test.dummyService)
+		muxRouter.ServeHTTP(rec, test.req)
 		assert.Equal(t, test.statusCode, rec.Code, fmt.Sprintf("%s: Wrong response code, was %d, should be %d", test.name, rec.Code, test.statusCode))
 
 		b, err := ioutil.ReadAll(rec.Body)
