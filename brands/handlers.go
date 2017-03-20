@@ -108,8 +108,7 @@ func (h *BrandHandler) HealthCheck() v1a.Check {
 
 // G2GCheck - Return FT standard good-to-go check
 func (h *BrandHandler) G2GCheck() gtg.Status {
-	count, err := h.service.getCount()
-	if h.service.isInitialised() && err == nil && count > 0 {
+	if h.service.isInitialised() && h.service.isDataLoaded() {
 		return gtg.Status{GoodToGo: true}
 	}
 	return gtg.Status{GoodToGo: false}
@@ -135,11 +134,6 @@ func (h *BrandHandler) GetBrandByUUID(writer http.ResponseWriter, req *http.Requ
 
 // Reload - Reload the cache with fresh information
 func (h *BrandHandler) Reload(writer http.ResponseWriter, req *http.Request) {
-	if !h.service.isInitialised() || !h.service.isDataLoaded() {
-		writeStatusServiceUnavailable(writer)
-		return
-	}
-
 	go func() {
 		if err := h.service.reloadDB(); err != nil {
 			log.Errorf("ERROR reloading db: %v", err.Error())

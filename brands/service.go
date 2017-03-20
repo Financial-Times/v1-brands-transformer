@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/jaytaylor/html2text"
 	"github.com/pborman/uuid"
-	"net/http"
 )
 
 type httpClient interface {
@@ -66,7 +66,8 @@ func NewBrandService(repo tmereader.Repository,
 	go func(service *brandServiceImpl) {
 		err := service.reloadDB()
 		if err != nil {
-			log.Fatalf("Cannot reload DB. Error was: %s",err.Error())
+			log.Errorf("Cannot reload DB. Error was: %s", err.Error())
+			service.setDataLoaded(false)
 		}
 	}(s)
 	return s
@@ -256,6 +257,7 @@ func (s *brandServiceImpl) reloadDB() error {
 	err := s.loadDB()
 	if err != nil {
 		log.Errorf("Error while creating BrandService: [%v]", err.Error())
+		s.setDataLoaded(false)
 		return err
 	}
 	var bBrands []berthaBrand
@@ -268,6 +270,8 @@ func (s *brandServiceImpl) reloadDB() error {
 		err = s.loadCuratedBrands(bBrands)
 		if err != nil {
 			log.Errorf("Error while loading in the curated brands: [%v]", err.Error())
+			s.setDataLoaded(false)
+			return err
 		}
 	}
 
