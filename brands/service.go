@@ -265,6 +265,7 @@ func (s *brandServiceImpl) reloadDB() error {
 	bBrands, err = s.getBerthaBrands(s.berthaURL)
 	if err != nil {
 		log.Errorf("Error on Bertha load: [%v]", err.Error())
+		s.setDataLoaded(false)
 		return err
 	} else {
 		err = s.loadCuratedBrands(bBrands)
