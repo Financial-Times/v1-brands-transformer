@@ -27,7 +27,7 @@ func NewBrandHandler(service BrandService) BrandHandler {
 // GetBrands - Return a JSON encoded list of all brands
 func (h *BrandHandler) GetBrands(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Add("Content-Type", "application/json")
-	if !h.service.isInitialised() {
+	if !h.service.isInitialised() || !h.service.isDataLoaded() {
 		writeStatusServiceUnavailable(writer)
 		return
 	}
@@ -51,7 +51,7 @@ func (h *BrandHandler) GetBrands(writer http.ResponseWriter, req *http.Request) 
 // GetBrandUUIDs - Get a list of JSON objects (not a JSON list) giving each id.
 func (h *BrandHandler) GetBrandUUIDs(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Add("Content-Type", "application/json")
-	if !h.service.isInitialised() {
+	if !h.service.isInitialised() || !h.service.isDataLoaded() {
 		writeStatusServiceUnavailable(writer)
 		return
 	}
@@ -74,7 +74,7 @@ func (h *BrandHandler) GetBrandUUIDs(writer http.ResponseWriter, req *http.Reque
 
 // GetCount - Get a count of the number of available brands
 func (h *BrandHandler) GetCount(writer http.ResponseWriter, req *http.Request) {
-	if !h.service.isInitialised() {
+	if !h.service.isInitialised() || !h.service.isDataLoaded() {
 		writer.Header().Add("Content-Type", "application/json")
 		writeStatusServiceUnavailable(writer)
 		return
@@ -117,7 +117,7 @@ func (h *BrandHandler) G2GCheck() gtg.Status {
 // GetBrandByUUID - Return the JSON for a single brand
 func (h *BrandHandler) GetBrandByUUID(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Add("Content-Type", "application/json")
-	if !h.service.isInitialised() {
+	if !h.service.isInitialised() || !h.service.isDataLoaded() {
 		writeStatusServiceUnavailable(writer)
 		return
 	}
