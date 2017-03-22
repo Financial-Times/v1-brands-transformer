@@ -3,6 +3,7 @@ package brands
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -11,11 +12,12 @@ import (
 	"time"
 
 	"bytes"
+	"net/http"
+	"sort"
+
 	"github.com/Financial-Times/tme-reader/tmereader"
 	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"sort"
 )
 
 type testSuiteForBrands struct {
@@ -276,6 +278,31 @@ func TestReload(t *testing.T) {
 	assertCount(t, service, 3)
 }
 
+func TestFailedReloadNoBertha(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+	repo := dummyRepo{terms: []term{{CanonicalName: "Bob", RawID: "bob"}, {CanonicalName: "Fred", RawID: "fred"}}}
+	service := NewBrandService(&repo, "/base/url", "Brands", 1, tmpfile.Name(), "bertha/url", &mockClient{err: errors.New("bertha fail")})
+
+	defer service.Shutdown()
+	waitTillInit(t, service)
+	time.Sleep(5 * time.Second)
+	assert.False(t, service.isDataLoaded())
+	assertCount(t, service, 0)
+}
+
+func TestFailedReloadNoTME(t *testing.T) {
+	tmpfile := getTempFile(t)
+	defer os.Remove(tmpfile.Name())
+	repo := dummyRepo{err: errors.New("TME Fail"), terms: []term{{CanonicalName: "Bob", RawID: "bob"}, {CanonicalName: "Fred", RawID: "fred"}}}
+	service := NewBrandService(&repo, "/base/url", "Brands", 1, tmpfile.Name(), "bertha/url", &mockClient{})
+
+	defer service.Shutdown()
+	waitTillInit(t, service)
+	assert.False(t, service.isDataLoaded())
+	assertCount(t, service, 0)
+}
+
 func TestGetBrandByUUID(t *testing.T) {
 	tmpfile := getTempFile(t)
 	defer os.Remove(tmpfile.Name())
@@ -427,7 +454,7 @@ func assertCount(t *testing.T, s BrandService, expected int) {
 }
 
 func createTestBrandService(repo tmereader.Repository, cacheFileName string) BrandService {
-	return NewBrandService(repo, "/base/url", "Brands", 1, cacheFileName, "http://bertha/url", &mockClient{})
+	return NewBrandService(repo, "/base/url", "Brands", 1, cacheFileName, "bertha/url", &mockClient{})
 }
 
 func getTempFile(t *testing.T) *os.File {
@@ -450,7 +477,7 @@ func waitTillInit(t *testing.T, s BrandService) {
 }
 
 func waitTillDataLoaded(t *testing.T, s BrandService) {
-	for i := 1; i <= 1000; i++ {
+	for i := 1; i <= 100; i++ {
 		if s.isDataLoaded() {
 			log.Info("isDataLoaded was true")
 			break

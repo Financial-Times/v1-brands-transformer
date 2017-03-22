@@ -380,6 +380,9 @@ func (s *brandServiceImpl) getBerthaBrands(berthaURL string) ([]berthaBrand, err
 	}
 
 	res, err := s.httpClient.Do(req)
+	if err != nil {
+		return []berthaBrand{}, err
+	}
 	var bBrands []berthaBrand
 	err = json.NewDecoder(res.Body).Decode(&bBrands)
 	return bBrands, err
