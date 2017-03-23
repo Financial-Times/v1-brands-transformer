@@ -46,6 +46,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       true,
 				initialised: true,
+				dataLoaded:  true,
 				brands:      []brand{{UUID: testUUID, PrefLabel: "Financial Times", AlternativeIdentifiers: alternativeIdentifiers{UUIDs: []string{testUUID}, TME: []string{"RlQK-QnJhbmRzCg=="}}, Type: "Brand"}}},
 			http.StatusOK,
 			"application/json",
@@ -55,6 +56,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       true,
 				initialised: true,
+				dataLoaded:  true,
 				brands:      []brand{{UUID: testUUID, PrefLabel: "Financial Times", AlternativeIdentifiers: alternativeIdentifiers{UUIDs: []string{testUUID}, TME: []string{"RlQK-QnJhbmRzCg=="}}, Type: "Brand"}}},
 			http.StatusMethodNotAllowed,
 			"application/json",
@@ -64,6 +66,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       false,
 				initialised: true,
+				dataLoaded:  true,
 				brands:      []brand{{}}},
 			http.StatusNotFound,
 			"application/json",
@@ -83,6 +86,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				count:       1,
 				initialised: true,
+				dataLoaded:  true,
 				brands:      []brand{{UUID: testUUID}}},
 			http.StatusOK,
 			"application/json",
@@ -93,6 +97,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				count:       1,
 				initialised: true,
+				dataLoaded:  true,
 				brands:      []brand{{UUID: testUUID}}},
 			http.StatusMethodNotAllowed,
 			"application/json",
@@ -104,6 +109,7 @@ func TestHandlers(t *testing.T) {
 				found:       true,
 				count:       1,
 				initialised: true,
+				dataLoaded:  true,
 				brands:      []brand{{UUID: testUUID}}},
 			http.StatusInternalServerError,
 			"application/json",
@@ -123,6 +129,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       true,
 				initialised: true,
+				dataLoaded:  true,
 				count:       2,
 				brands:      []brand{{UUID: testUUID}, {UUID: testUUID2}}},
 			http.StatusOK,
@@ -133,6 +140,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       true,
 				initialised: true,
+				dataLoaded:  true,
 				count:       2,
 				brands:      []brand{{UUID: testUUID}, {UUID: testUUID2}}},
 			http.StatusMethodNotAllowed,
@@ -142,6 +150,7 @@ func TestHandlers(t *testing.T) {
 			newRequest("GET", "/transformers/brands"),
 			&dummyService{
 				initialised: true,
+				dataLoaded:  true,
 				count:       0,
 				brands:      []brand{}},
 			http.StatusNotFound,
@@ -161,6 +170,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       true,
 				initialised: true,
+				dataLoaded:  true,
 				count:       1,
 				brands:      []brand{{UUID: testUUID}, {UUID: testUUID2}}},
 			http.StatusOK,
@@ -170,6 +180,7 @@ func TestHandlers(t *testing.T) {
 			newRequest("GET", "/transformers/brands/__ids"),
 			&dummyService{
 				initialised: true,
+				dataLoaded:  true,
 				count:       0,
 				brands:      []brand{}},
 			http.StatusNotFound,
@@ -189,6 +200,7 @@ func TestHandlers(t *testing.T) {
 			&dummyService{
 				found:       false,
 				initialised: false,
+				dataLoaded:  false,
 				brands:      []brand{}},
 			http.StatusServiceUnavailable,
 			"application/json",
@@ -197,24 +209,18 @@ func TestHandlers(t *testing.T) {
 			newRequest("GET", status.GTGPath),
 			&dummyService{
 				found:       false,
-				initialised: true},
-			http.StatusServiceUnavailable,
-			"application/json",
-			""},
-		{"GTG unavailable - get GTG count returns error",
-			newRequest("GET", status.GTGPath),
-			&dummyService{
-				found:       false,
 				initialised: true,
-				err:         errors.New("Count error")},
-			http.StatusServiceUnavailable,
+				dataLoaded:  true,
+			},
+			http.StatusOK,
 			"application/json",
-			""},
+			"OK"},
 		{"GTG OK - get GTG",
 			newRequest("GET", status.GTGPath),
 			&dummyService{
 				found:       true,
 				initialised: true,
+				dataLoaded:  true,
 				count:       2},
 			http.StatusOK,
 			"application/json",
@@ -223,7 +229,8 @@ func TestHandlers(t *testing.T) {
 			newRequest("GET", "/__health"),
 			&dummyService{
 				found:       false,
-				initialised: false},
+				initialised: false,
+				dataLoaded:  true},
 			http.StatusOK,
 			"application/json",
 			"regex=Service is initilising"},
@@ -231,7 +238,8 @@ func TestHandlers(t *testing.T) {
 			newRequest("GET", "/__health"),
 			&dummyService{
 				found:       false,
-				initialised: true},
+				initialised: true,
+				dataLoaded:  true},
 			http.StatusOK,
 			"application/json",
 			"regex=Service is up and running"},
@@ -254,26 +262,6 @@ func TestHandlers(t *testing.T) {
 			http.StatusAccepted,
 			"application/json",
 			"{\"message\": \"Reloading brands\"}\n"},
-		{"Reload - Service unavailable as not initialised",
-			newRequest("POST", "/transformers/brands/__reload"),
-			&dummyService{
-				wg:          &wg,
-				err:         errors.New("Boom goes the backend..."),
-				initialised: false,
-				dataLoaded:  true},
-			http.StatusServiceUnavailable,
-			"application/json",
-			"{\"message\": \"Service Unavailable\"}\n"},
-		{"Reload - Service unavailable as data not loaded",
-			newRequest("POST", "/transformers/brands/__reload"),
-			&dummyService{
-				wg:          &wg,
-				err:         errors.New("Boom goes the backend..."),
-				initialised: true,
-				dataLoaded:  false},
-			http.StatusServiceUnavailable,
-			"application/json",
-			"{\"message\": \"Service Unavailable\"}\n"},
 	}
 	for _, test := range tests {
 		wg.Add(1)

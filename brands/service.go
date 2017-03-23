@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/jaytaylor/html2text"
 	"github.com/pborman/uuid"
-	"net/http"
 )
 
 type httpClient interface {
@@ -64,7 +64,11 @@ func NewBrandService(repo tmereader.Repository,
 	s := &brandServiceImpl{repository: repo, baseURL: baseURL, taxonomyName: taxonomyName, maxTmeRecords: maxTmeRecords, initialised: true, cacheFileName: cacheFileName, berthaURL: berthaURL, httpClient: httpClient}
 	s.setDataLoaded(false)
 	go func(service *brandServiceImpl) {
-		service.reloadDB()
+		err := service.reloadDB()
+		if err != nil {
+			log.Errorf("Cannot reload DB. Error was: %s", err.Error())
+			service.setDataLoaded(false)
+		}
 	}(s)
 	return s
 }
@@ -253,6 +257,7 @@ func (s *brandServiceImpl) reloadDB() error {
 	err := s.loadDB()
 	if err != nil {
 		log.Errorf("Error while creating BrandService: [%v]", err.Error())
+		s.setDataLoaded(false)
 		return err
 	}
 	var bBrands []berthaBrand
@@ -260,10 +265,14 @@ func (s *brandServiceImpl) reloadDB() error {
 	bBrands, err = s.getBerthaBrands(s.berthaURL)
 	if err != nil {
 		log.Errorf("Error on Bertha load: [%v]", err.Error())
+		s.setDataLoaded(false)
+		return err
 	} else {
 		err = s.loadCuratedBrands(bBrands)
 		if err != nil {
 			log.Errorf("Error while loading in the curated brands: [%v]", err.Error())
+			s.setDataLoaded(false)
+			return err
 		}
 	}
 
@@ -371,6 +380,9 @@ func (s *brandServiceImpl) getBerthaBrands(berthaURL string) ([]berthaBrand, err
 	}
 
 	res, err := s.httpClient.Do(req)
+	if err != nil {
+		return []berthaBrand{}, err
+	}
 	var bBrands []berthaBrand
 	err = json.NewDecoder(res.Body).Decode(&bBrands)
 	return bBrands, err
