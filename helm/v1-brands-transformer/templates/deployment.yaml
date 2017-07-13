@@ -1,0 +1,82 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.service.name }} 
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}" 
+    visualize: "true" 
+    app: {{ .Values.service.name }} 
+spec:
+  replicas: {{ .Values.replicaCount }} 
+  selector: 
+    matchLabels:
+      app: {{ .Values.service.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.service.name }}
+        visualize: "true" 
+    spec:
+      containers: 
+      - name: {{ .Values.service.name }} 
+        image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: TME_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: global-config
+              key: tme.url
+        - name: TME_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: global-secrets
+              key: tme.username
+        - name: TME_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: global-secrets
+              key: tme.password
+        - name: TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: global-secrets
+              key: tme.token
+        - name: GRAPHITE_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: global-config
+              key: graphite.address
+        - name: PORT
+          value: "{{ .Values.env.PORT }}"
+        - name: BASE_URL
+          value: {{ .Values.env.BASE_URL }}
+        - name: CACHE_FILE_NAME
+          value: {{ .Values.env.CACHE_FILE_NAME }}
+        - name: BERTHA_SOURCE_URL
+          value: {{ .Values.env.BERTHA_SOURCE_URL }}
+        - name: GRAPHITE_PREFIX
+          value: "coco.services.k8s.{{ .Values.service.name }}"
+        - name: LOG_METRICS
+          value: "{{ .Values.env.LOG_METRICS }}"
+        volumeMounts:
+        - name: "{{ .Values.service.name }}-cache"
+          mountPath: /cache
+        ports: 
+        - containerPort: 8080 
+        livenessProbe: 
+          tcpSocket: 
+            port: 8080 
+          initialDelaySeconds: 5
+        readinessProbe: 
+          httpGet: 
+            path: "/__gtg" 
+            port: 8080 
+          initialDelaySeconds: 5
+          periodSeconds: 30 
+        resources: 
+{{ toYaml .Values.resources | indent 12 }}
+      volumes:
+      - name: "{{ .Values.service.name }}-cache"
+        persistentVolumeClaim:
+          claimName: "{{ .Values.service.name }}-cache-pvc"

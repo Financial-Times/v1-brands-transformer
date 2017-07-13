@@ -10,7 +10,7 @@
 *.html
 *coverage.*
 *.iml
-v1-brands-transformer
+/v1-brands-transformer
 .idea/
 *.db
 *.lock
