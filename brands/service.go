@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/tme-reader/tmereader"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/boltdb/bolt"
 	"github.com/jaytaylor/html2text"
 	"github.com/pborman/uuid"

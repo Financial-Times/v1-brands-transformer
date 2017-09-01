@@ -1,0 +1,14 @@
+# Values used for the deployed application.
+replicaCount: 1
+service:
+  name: v1-brands-transformer
+cache:
+  size: 5Gi
+  nfsServer: fs-6330fcaa.efs.eu-west-1.amazonaws.com
+  path: "/"
+env:
+  PORT: 8080
+  BASE_URL: "http://v1-brands-transformer:8080/transformers/brands/"
+  CACHE_FILE_NAME: "/cache/v1-brands-transformer.db"
+  BERTHA_SOURCE_URL: "http://bertha.ig.ft.com/republish/publish/gss/1wEdVRLtayZ6-XBfYM3vKAGaOV64cNJD3L8MlLM8-uFY/TestBrands"
+  LOG_METRICS: false
